@@ -116,14 +116,29 @@ namespace Catering
         {
             StartServiceButton.IsEnabled = false;
 
-            // 1. Stewardess läuft initial nach hinten
+            string[] rowOrder = { "back", "near", "front" };
+
+            // 1) Stewardess GANZ nach hinten → wie bei dir bisher
             await StewardessInitialMoveBack();
 
-            // 2. Serviceroutine
-            string[] rowOrder = { "back", "near", "front" };
+            // 2) pro Reihe immer: zurück in Gang und von dort nach vorne in die Reihe
             foreach (var row in rowOrder)
             {
-                // Links zuerst
+                // bevor wir den ersten Passagier der Reihe bedienen:
+                // bitte immer wieder an den Gang / den "Row-Gate" der Reihe laufen
+
+                // das ist der Y Wert der Gangposition dieser Reihe (wie wir ihn beim initialen Back-Y hatten)
+                double gateY = row switch
+                {
+                    "back" => baseRowY["front"] - 145,
+                    "near" => baseRowY["near"] + 50,
+                    "front" => baseRowY["front"] + 130,
+                    _ => baseRowY["front"] - 145
+                };
+
+                await MoveStewardessToGangY(gateY);   // <---- NEU
+
+                // LINKS
                 var leftPassenger = CabinCanvas.Children
                     .OfType<Image>()
                     .Where(img => img.Tag?.ToString() == "avatar_dummy")
@@ -132,9 +147,9 @@ namespace Catering
                     .FirstOrDefault();
 
                 if (leftPassenger != null)
-                    await StewardessServePassenger(leftPassenger, true, row);
+                    await StewardessServePassenger(leftPassenger, true, row, nextRow: row);
 
-                // Dann rechts
+                // RECHTS
                 var rightPassenger = CabinCanvas.Children
                     .OfType<Image>()
                     .Where(img => img.Tag?.ToString() == "avatar_dummy")
@@ -143,11 +158,15 @@ namespace Catering
                     .FirstOrDefault();
 
                 if (rightPassenger != null)
-                    await StewardessServePassenger(rightPassenger, false, row);
+                    await StewardessServePassenger(rightPassenger, false, row, nextRow: row);
             }
+
+            // 3) am Ende ins Finish (Gang ganz vorne)
+            await MoveStewardessToGangY(700);
 
             StartServiceButton.IsEnabled = true;
         }
+
 
         private async Task StewardessInitialMoveBack()
         {
@@ -181,6 +200,50 @@ namespace Catering
 
             scaleTransform.ScaleX = 2.0;
             scaleTransform.ScaleY = 2.0;
+        }
+        private async Task MoveStewardessToGangY(double targetY)
+        {
+            double speed = 6;
+
+            // IMMER frontal Bild
+            Stewardess.Source = new BitmapImage(new Uri(System.IO.Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory, "Images", "stfront.png"), UriKind.Absolute));
+
+            // welche aktuelle Skalierung?
+            var scaleTransform = Stewardess.RenderTransform as ScaleTransform;
+            if (scaleTransform == null)
+            {
+                scaleTransform = new ScaleTransform(2.0, 2.0);
+                Stewardess.RenderTransform = scaleTransform;
+                Stewardess.RenderTransformOrigin = new Point(0.5, 1);
+            }
+
+            double startY = Canvas.GetTop(Stewardess);
+            double startScale = scaleTransform.ScaleY; // X = Y identisch bei dir
+
+            // Zielskala abhängig von Ziel-Y (wie bei dir im Code)
+            double targetScale =
+                (targetY < baseRowY["near"]) ? 2.0 :
+                (targetY < baseRowY["front"]) ? 2.5 : 2.7;
+
+            while (Math.Abs(Canvas.GetTop(Stewardess) - targetY) > 2)
+            {
+                double curY = Canvas.GetTop(Stewardess);
+                curY += curY < targetY ? speed : -speed;
+                Canvas.SetTop(Stewardess, curY);
+
+                // interpolieren
+                double progress = (curY - startY) / (targetY - startY);
+                double currentScale = startScale + (targetScale - startScale) * progress;
+                scaleTransform.ScaleX = currentScale;
+                scaleTransform.ScaleY = currentScale;
+
+                await Task.Delay(16);
+            }
+
+            scaleTransform.ScaleX = targetScale;
+            scaleTransform.ScaleY = targetScale;
+            Canvas.SetTop(Stewardess, targetY);
         }
 
         private async Task StewardessServePassenger(Image passenger, bool isLeft, string row, string nextRow = null)
