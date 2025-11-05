@@ -7,14 +7,13 @@
         Background="Black">
 
     <Grid>
-        <!-- Kabine -->
         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
             <Canvas x:Name="CabinCanvas" Width="1355" Height="768" HorizontalAlignment="Center" VerticalAlignment="Center">
 
-                <!-- Hintergrund und Sitze -->
+                <!-- Sitzreihen -->
                 <Image x:Name="SeatsBackground" Source="Images/seatsbackground.png" Width="1355" Height="768" Panel.ZIndex="1"/>
-                <Image x:Name="SeatsMiddle" Source="Images/seatsmiddle.png" Width="1355" Height="768" Panel.ZIndex="3" IsHitTestVisible="False"/>
-                <Image x:Name="SeatsFront" Source="Images/seatsfront.png" Width="1355" Height="768" Panel.ZIndex="5" IsHitTestVisible="False"/>
+                <Image x:Name="SeatsMiddle" Source="Images/seatsmiddle.png" Width="1355" Height="768" Panel.ZIndex="4" IsHitTestVisible="False"/>
+                <Image x:Name="SeatsFront" Source="Images/seatsfront.png" Width="1355" Height="768" Panel.ZIndex="7" IsHitTestVisible="False"/>
 
                 <!-- Stewardess -->
                 <Image x:Name="Stewardess" Source="Images/stheck.png"
