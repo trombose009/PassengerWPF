@@ -8,7 +8,7 @@ using System.Windows.Media.Imaging;
 
 namespace Catering
 {
-    public partial class MainWindow : Window
+    public partial class CateringWindow : Window
     {
         private readonly string[] dummyAvatars = new[]
         {
@@ -37,7 +37,7 @@ namespace Catering
             ["front"] = 100
         };
 
-        public MainWindow()
+        public CateringWindow()
         {
             InitializeComponent();
             SetupBackground();
