@@ -6,74 +6,81 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
-namespace Catering
+namespace CateringWPF
 {
     public partial class CateringWindow : Window
     {
-        private readonly string[] dummyAvatars = new[]
-        {
-            "avatar1.png","avatar2.png","avatar3.png","avatar4.png","avatar5.png","avatar6.png"
-        };
+        private readonly string[] dummyAvatars;
+        private readonly System.Collections.Generic.Dictionary<string, System.Collections.Generic.Dictionary<string, double>> seatPositions;
+        private readonly System.Collections.Generic.Dictionary<string, double> baseRowY;
+        private readonly System.Collections.Generic.Dictionary<string, double> avatarSize;
 
-        private readonly System.Collections.Generic.Dictionary<string, System.Collections.Generic.Dictionary<string, double>> seatPositions
-            = new()
+        public CateringWindow()
+        {
+            InitializeComponent();
+
+            // Dummy Avatare aus Config-Pfad laden
+            string avatarDir = ConfigService.Current.Paths.Avatars;
+            if (System.IO.Directory.Exists(avatarDir))
+            {
+                dummyAvatars = System.IO.Directory.GetFiles(avatarDir, "*.png")
+                                                 .Select(f => System.IO.Path.GetFileName(f))
+                                                 .ToArray();
+            }
+            else
+            {
+                dummyAvatars = Array.Empty<string>();
+            }
+
+            // Sitz-Logik unverändert
+            seatPositions = new()
             {
                 ["back"] = new() { ["A"] = 280, ["B"] = 410, ["C"] = 535, ["D"] = 800, ["E"] = 930, ["F"] = 1060 },
                 ["near"] = new() { ["A"] = 150, ["B"] = 320, ["C"] = 490, ["D"] = 860, ["E"] = 1020, ["F"] = 1190 },
                 ["front"] = new() { ["B"] = 120, ["C"] = 390, ["D"] = 950, ["E"] = 1215 }
             };
 
-        private readonly System.Collections.Generic.Dictionary<string, double> baseRowY = new()
-        {
-            ["back"] = 350,
-            ["near"] = 420,
-            ["front"] = 520
-        };
+            baseRowY = new()
+            {
+                ["back"] = 350,
+                ["near"] = 420,
+                ["front"] = 520
+            };
 
-        private readonly System.Collections.Generic.Dictionary<string, double> avatarSize = new()
-        {
-            ["back"] = 60,
-            ["near"] = 80,
-            ["front"] = 100
-        };
+            avatarSize = new()
+            {
+                ["back"] = 60,
+                ["near"] = 80,
+                ["front"] = 100
+            };
 
-        public CateringWindow()
-        {
-            InitializeComponent();
             SetupBackground();
             PlaceDummyPassengers();
         }
 
         private void SetupBackground()
         {
-            var bg = new Image
-            {
-                Source = new BitmapImage(new Uri(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "seatsbackground.png"), UriKind.Absolute)),
-                Width = 1355,
-                Height = 768
-            };
-            Panel.SetZIndex(bg, 1);
-            CabinCanvas.Children.Add(bg);
+            string cabinDir = ConfigService.Current.Paths.Cabin;
 
-            var middle = new Image
+            void AddImage(string fileName, int zIndex, bool hitTest = true)
             {
-                Source = new BitmapImage(new Uri(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "seatsmiddle.png"), UriKind.Absolute)),
-                Width = 1355,
-                Height = 768,
-                IsHitTestVisible = false
-            };
-            Panel.SetZIndex(middle, 4);
-            CabinCanvas.Children.Add(middle);
+                var imgPath = System.IO.Path.Combine(cabinDir, fileName);
+                if (!System.IO.File.Exists(imgPath)) return;
 
-            var front = new Image
-            {
-                Source = new BitmapImage(new Uri(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "seatsfront.png"), UriKind.Absolute)),
-                Width = 1355,
-                Height = 768,
-                IsHitTestVisible = false
-            };
-            Panel.SetZIndex(front, 7);
-            CabinCanvas.Children.Add(front);
+                var img = new Image
+                {
+                    Source = new BitmapImage(new Uri(imgPath, UriKind.Absolute)),
+                    Width = 1355,
+                    Height = 768,
+                    IsHitTestVisible = hitTest
+                };
+                Panel.SetZIndex(img, zIndex);
+                CabinCanvas.Children.Add(img);
+            }
+
+            AddImage("seatsbackground.png", 1);
+            AddImage("seatsmiddle.png", 4, false);
+            AddImage("seatsfront.png", 7, false);
         }
 
         private void PlaceDummyPassengers()
@@ -97,12 +104,17 @@ namespace Catering
             double x = seatPositions[rowType][seatLetter];
             double size = avatarSize[rowType];
 
+            if (dummyAvatars.Length == 0) return;
             string imgFile = dummyAvatars[rand.Next(dummyAvatars.Length)];
+
+            string imgPath = System.IO.Path.Combine(ConfigService.Current.Paths.Avatars, imgFile);
+            if (!System.IO.File.Exists(imgPath)) return;
+
             var img = new Image
             {
                 Width = size,
                 Height = size,
-                Source = new BitmapImage(new Uri(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", imgFile), UriKind.Absolute)),
+                Source = new BitmapImage(new Uri(imgPath, UriKind.Absolute)),
                 Tag = "avatar_dummy"
             };
 
@@ -112,22 +124,23 @@ namespace Catering
             CabinCanvas.Children.Add(img);
         }
 
+        private BitmapImage LoadStewardessImage(string fileName)
+        {
+            string path = System.IO.Path.Combine(ConfigService.Current.Paths.Stewardess, fileName);
+            if (!System.IO.File.Exists(path)) return null;
+            return new BitmapImage(new Uri(path, UriKind.Absolute));
+        }
+
         private async void StartServiceButton_Click(object sender, RoutedEventArgs e)
         {
             StartServiceButton.IsEnabled = false;
 
             string[] rowOrder = { "back", "near", "front" };
 
-            // 1) Stewardess GANZ nach hinten → wie bei dir bisher
             await StewardessInitialMoveBack();
 
-            // 2) pro Reihe immer: zurück in Gang und von dort nach vorne in die Reihe
             foreach (var row in rowOrder)
             {
-                // bevor wir den ersten Passagier der Reihe bedienen:
-                // bitte immer wieder an den Gang / den "Row-Gate" der Reihe laufen
-
-                // das ist der Y Wert der Gangposition dieser Reihe (wie wir ihn beim initialen Back-Y hatten)
                 double gateY = row switch
                 {
                     "back" => baseRowY["front"] - 145,
@@ -136,9 +149,8 @@ namespace Catering
                     _ => baseRowY["front"] - 145
                 };
 
-                await MoveStewardessToGangY(gateY);   // <---- NEU
+                await MoveStewardessToGangY(gateY);
 
-                // LINKS
                 var leftPassenger = CabinCanvas.Children
                     .OfType<Image>()
                     .Where(img => img.Tag?.ToString() == "avatar_dummy")
@@ -149,7 +161,6 @@ namespace Catering
                 if (leftPassenger != null)
                     await StewardessServePassenger(leftPassenger, true, row, nextRow: row);
 
-                // RECHTS
                 var rightPassenger = CabinCanvas.Children
                     .OfType<Image>()
                     .Where(img => img.Tag?.ToString() == "avatar_dummy")
@@ -161,12 +172,10 @@ namespace Catering
                     await StewardessServePassenger(rightPassenger, false, row, nextRow: row);
             }
 
-            // 3) am Ende ins Finish (Gang ganz vorne)
             await MoveStewardessToGangY(700);
 
             StartServiceButton.IsEnabled = true;
         }
-
 
         private async Task StewardessInitialMoveBack()
         {
@@ -175,7 +184,7 @@ namespace Catering
             double startY = 700;
             double backY = baseRowY["front"] - 145;
 
-            Stewardess.Source = new BitmapImage(new Uri(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "stheck.png"), UriKind.Absolute));
+            Stewardess.Source = LoadStewardessImage("stheck.png");
             Stewardess.RenderTransformOrigin = new Point(0.5, 1);
             var scaleTransform = new ScaleTransform(2.7, 2.7);
             Stewardess.RenderTransform = scaleTransform;
@@ -190,7 +199,6 @@ namespace Catering
                 if (newY < backY) newY = backY;
                 Canvas.SetTop(Stewardess, newY);
 
-                // Skalierung interpolieren
                 double currentScale = 2.7 - (2.7 - 2.0) * ((startY - newY) / (startY - backY));
                 scaleTransform.ScaleX = currentScale;
                 scaleTransform.ScaleY = currentScale;
@@ -201,15 +209,13 @@ namespace Catering
             scaleTransform.ScaleX = 2.0;
             scaleTransform.ScaleY = 2.0;
         }
+
         private async Task MoveStewardessToGangY(double targetY)
         {
             double speed = 6;
 
-            // IMMER frontal Bild
-            Stewardess.Source = new BitmapImage(new Uri(System.IO.Path.Combine(
-                AppDomain.CurrentDomain.BaseDirectory, "Images", "stfront.png"), UriKind.Absolute));
+            Stewardess.Source = LoadStewardessImage("stfront.png");
 
-            // welche aktuelle Skalierung?
             var scaleTransform = Stewardess.RenderTransform as ScaleTransform;
             if (scaleTransform == null)
             {
@@ -219,9 +225,8 @@ namespace Catering
             }
 
             double startY = Canvas.GetTop(Stewardess);
-            double startScale = scaleTransform.ScaleY; // X = Y identisch bei dir
+            double startScale = scaleTransform.ScaleY;
 
-            // Zielskala abhängig von Ziel-Y (wie bei dir im Code)
             double targetScale =
                 (targetY < baseRowY["near"]) ? 2.0 :
                 (targetY < baseRowY["front"]) ? 2.5 : 2.7;
@@ -232,7 +237,6 @@ namespace Catering
                 curY += curY < targetY ? speed : -speed;
                 Canvas.SetTop(Stewardess, curY);
 
-                // interpolieren
                 double progress = (curY - startY) / (targetY - startY);
                 double currentScale = startScale + (targetScale - startScale) * progress;
                 scaleTransform.ScaleX = currentScale;
@@ -248,9 +252,9 @@ namespace Catering
 
         private async Task StewardessServePassenger(Image passenger, bool isLeft, string row, string nextRow = null)
         {
+            // Alle Bewegungslogik unverändert
             double speed = 6;
 
-            // Y-Position für die jeweilige Reihe
             double backY = baseRowY["front"] - 100;
             double yFixed = row switch
             {
@@ -260,7 +264,6 @@ namespace Catering
                 _ => 700
             };
 
-            // Skalierung je nach Reihe
             double scale = row switch
             {
                 "back" => 2.0,
@@ -269,10 +272,8 @@ namespace Catering
                 _ => 2.7
             };
 
-            // Z-Index passend zur Reihe
             Panel.SetZIndex(Stewardess, row == "back" ? 3 : row == "near" ? 6 : 10);
 
-            // Transform initialisieren
             var scaleTransform = Stewardess.RenderTransform as ScaleTransform;
             if (scaleTransform == null)
             {
@@ -285,10 +286,7 @@ namespace Catering
 
             double targetX = Canvas.GetLeft(passenger);
 
-            // Schritt a: Horizontal laufen zum Passagier (seitlich)
-            Stewardess.Source = new BitmapImage(new Uri(System.IO.Path.Combine(
-                AppDomain.CurrentDomain.BaseDirectory, "Images",
-                isLeft ? "stlinks.png" : "strechts.png"), UriKind.Absolute));
+            Stewardess.Source = LoadStewardessImage(isLeft ? "stlinks.png" : "strechts.png");
 
             while (Math.Abs(Canvas.GetLeft(Stewardess) - targetX) > 2)
             {
@@ -299,16 +297,10 @@ namespace Catering
                 await Task.Delay(16);
             }
 
-            // Schritt b: Servieren
-            Stewardess.Source = new BitmapImage(new Uri(System.IO.Path.Combine(
-                AppDomain.CurrentDomain.BaseDirectory, "Images",
-                isLeft ? "stdservicelinks.png" : "stdservicerechts.png"), UriKind.Absolute));
+            Stewardess.Source = LoadStewardessImage(isLeft ? "stdservicelinks.png" : "stdservicerechts.png");
             await Task.Delay(3000);
 
-            // Schritt c: Rückweg horizontal zum Gang (seitlich)
-            Stewardess.Source = new BitmapImage(new Uri(System.IO.Path.Combine(
-                AppDomain.CurrentDomain.BaseDirectory, "Images",
-                isLeft ? "strechts.png" : "stlinks.png"), UriKind.Absolute)); // abhängig von Richtung
+            Stewardess.Source = LoadStewardessImage(isLeft ? "strechts.png" : "stlinks.png");
 
             double gangX = 650;
             while (Math.Abs(Canvas.GetLeft(Stewardess) - gangX) > 2)
@@ -319,18 +311,16 @@ namespace Catering
                 await Task.Delay(16);
             }
 
-            // Schritt d: Vertikal vom Gang auf uns zu (frontal)
-            Stewardess.Source = new BitmapImage(new Uri(System.IO.Path.Combine(
-                AppDomain.CurrentDomain.BaseDirectory, "Images", "stfront.png"), UriKind.Absolute));
+            Stewardess.Source = LoadStewardessImage("stfront.png");
 
             double endY;
             double scaleEnd;
-            if (nextRow == null) // letzte Reihe
+            if (nextRow == null)
             {
                 endY = 700;
                 scaleEnd = 2.7;
             }
-            else // bis zur Gangposition der nächsten Reihe
+            else
             {
                 endY = nextRow switch
                 {
@@ -357,7 +347,6 @@ namespace Catering
                 if (newY > endY) newY = endY;
                 Canvas.SetTop(Stewardess, newY);
 
-                // Skalierung interpolieren
                 double progress = (newY - startY) / (endY - startY);
                 double currentScale = scaleStart + (scaleEnd - scaleStart) * progress;
                 scaleTransform.ScaleX = currentScale;
@@ -369,10 +358,7 @@ namespace Catering
             scaleTransform.ScaleX = scaleEnd;
             scaleTransform.ScaleY = scaleEnd;
 
-            Stewardess.Source = new BitmapImage(new Uri(System.IO.Path.Combine(
-                AppDomain.CurrentDomain.BaseDirectory, "Images", "stfront.png"), UriKind.Absolute));
+            Stewardess.Source = LoadStewardessImage("stfront.png");
         }
-
-
     }
 }

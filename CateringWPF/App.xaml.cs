@@ -1,14 +1,20 @@
-﻿using System.Configuration;
-using System.Data;
-using System.Windows;
+﻿using CateringWPF;
+using System.Windows; // WPF
 
 namespace CateringWPF
 {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
-    public partial class App : Application
+    public partial class App : System.Windows.Application // <-- explizit WPF
     {
-    }
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
 
+            // Config laden
+            ConfigService.Load();
+
+            // MainMenuWindow starten
+            var mainMenu = new MainMenuWindow();
+            mainMenu.Show();
+        }
+    }
 }

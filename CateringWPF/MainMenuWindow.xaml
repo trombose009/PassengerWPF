@@ -1,0 +1,17 @@
+﻿<Window x:Class="CateringWPF.MainMenuWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Hauptmenü"
+        Height="250"
+        Width="300"
+        WindowStartupLocation="CenterScreen"
+        Background="#111"
+        Foreground="White">
+
+    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+        <Button Content="Catering starten" Width="200" Height="40" Margin="0,0,0,20"
+                Click="BtnCatering_Click"/>
+        <Button Content="Einstellungen" Width="200" Height="40"
+                Click="BtnSettings_Click"/>
+    </StackPanel>
+</Window>
