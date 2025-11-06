@@ -1,0 +1,18 @@
+﻿<Window x:Class="CateringWPF.AvatarMappingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Avatar-Zuordnung"
+        Width="1000" Height="600"
+        WindowStartupLocation="CenterScreen"
+        Background="LightGray">
+
+    <Grid>
+        <DataGrid x:Name="AvatarDataGrid"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  RowHeight="72"
+                  Background="LightGray"
+                  AlternatingRowBackground="Gainsboro"
+                  Margin="10"/>
+    </Grid>
+</Window>

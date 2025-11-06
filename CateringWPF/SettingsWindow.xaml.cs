@@ -11,12 +11,14 @@ namespace CateringWPF
         {
             InitializeComponent();
 
+            // Vorhandene Werte aus Config laden
             TxtAvatars.Text = ConfigService.Current.Paths.Avatars;
             TxtOrders.Text = ConfigService.Current.Paths.Orders;
             TxtStewardess.Text = ConfigService.Current.Paths.Stewardess;
             TxtCabin.Text = ConfigService.Current.Paths.Cabin;
             TxtCateringCsv.Text = ConfigService.Current.Csv.Catering;
             TxtAvatarDbCsv.Text = ConfigService.Current.Csv.AvatarDb;
+            TxtActualFlightCsv.Text = ConfigService.Current.Csv.ActualFlight; // neu
         }
 
         private void BrowseFolder(TextBox target)
@@ -41,13 +43,16 @@ namespace CateringWPF
                 target.Text = dlg.FileName;
         }
 
+        // --- Browse Buttons ---
         private void BrowseAvatars_Click(object sender, RoutedEventArgs e) => BrowseFolder(TxtAvatars);
         private void BrowseOrders_Click(object sender, RoutedEventArgs e) => BrowseFolder(TxtOrders);
         private void BrowseStewardess_Click(object sender, RoutedEventArgs e) => BrowseFolder(TxtStewardess);
         private void BrowseCabin_Click(object sender, RoutedEventArgs e) => BrowseFolder(TxtCabin);
         private void BrowseCateringCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtCateringCsv);
         private void BrowseAvatarDbCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtAvatarDbCsv);
+        private void BrowseActualFlightCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtActualFlightCsv); // neu
 
+        // --- Speichern ---
         private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
             ConfigService.Current.Paths.Avatars = TxtAvatars.Text;
@@ -56,8 +61,10 @@ namespace CateringWPF
             ConfigService.Current.Paths.Cabin = TxtCabin.Text;
             ConfigService.Current.Csv.Catering = TxtCateringCsv.Text;
             ConfigService.Current.Csv.AvatarDb = TxtAvatarDbCsv.Text;
+            ConfigService.Current.Csv.ActualFlight = TxtActualFlightCsv.Text; // neu
 
             ConfigService.Save();
+
             MessageBox.Show("Einstellungen gespeichert.", "Fertig", MessageBoxButton.OK, MessageBoxImage.Information);
             this.Close();
         }

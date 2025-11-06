@@ -21,6 +21,7 @@ namespace CateringWPF
     {
         public string Catering { get; set; } = "";
         public string AvatarDb { get; set; } = "";
+        public string ActualFlight { get; set; } = "";
     }
 
     public static class ConfigService

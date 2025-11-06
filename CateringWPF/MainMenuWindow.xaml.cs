@@ -47,5 +47,12 @@ namespace CateringWPF
             };
             settingsWin.ShowDialog();
         }
+        private void BtnAvatarMapping_Click(object sender, RoutedEventArgs e)
+        {
+            var avatarWindow = new AvatarMappingWindow();
+            avatarWindow.Owner = this;
+            avatarWindow.Show();
+        }
+
     }
 }
