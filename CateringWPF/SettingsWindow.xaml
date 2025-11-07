@@ -22,6 +22,8 @@
             <RowDefinition Height="Auto"/>
             <!-- Avatar DB CSV -->
             <RowDefinition Height="Auto"/>
+            <!-- Orders CSV -->
+            <RowDefinition Height="Auto"/>
             <!-- Actual Flight CSV -->
             <RowDefinition Height="*"/>
             <!-- Save Button / Rest -->
@@ -63,13 +65,18 @@
         <TextBox x:Name="TxtAvatarDbCsv" Grid.Row="5" Grid.Column="1" Margin="5"/>
         <Button Content="..." Grid.Row="5" Grid.Column="2" Width="30" Click="BrowseAvatarDbCsv_Click"/>
 
+        <!-- Orders CSV -->
+        <TextBlock Text="Orders CSV:" Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" Margin="0,5"/>
+        <TextBox x:Name="TxtOrdersCsv" Grid.Row="6" Grid.Column="1" Margin="5"/>
+        <Button Content="..." Grid.Row="6" Grid.Column="2" Width="30" Click="BrowseOrdersCsv_Click"/>
+
         <!-- Actual Flight CSV -->
-        <TextBlock Text="Actual Flight CSV:" Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" Margin="0,5"/>
-        <TextBox x:Name="TxtActualFlightCsv" Grid.Row="6" Grid.Column="1" Margin="5"/>
-        <Button Content="..." Grid.Row="6" Grid.Column="2" Width="30" Click="BrowseActualFlightCsv_Click"/>
+        <TextBlock Text="Actual Flight CSV:" Grid.Row="7" Grid.Column="0" VerticalAlignment="Center" Margin="0,5"/>
+        <TextBox x:Name="TxtActualFlightCsv" Grid.Row="7" Grid.Column="1" Margin="5"/>
+        <Button Content="..." Grid.Row="7" Grid.Column="2" Width="30" Click="BrowseActualFlightCsv_Click"/>
 
         <!-- Save Button -->
-        <Button Content="Speichern" Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="3" Height="40" Margin="0,20,0,0"
+        <Button Content="Speichern" Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="3" Height="40" Margin="0,20,0,0"
                 HorizontalAlignment="Center" Width="120" Click="BtnSave_Click"/>
     </Grid>
 </Window>

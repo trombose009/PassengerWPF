@@ -18,6 +18,7 @@ namespace CateringWPF
             TxtCabin.Text = ConfigService.Current.Paths.Cabin;
             TxtCateringCsv.Text = ConfigService.Current.Csv.Catering;
             TxtAvatarDbCsv.Text = ConfigService.Current.Csv.AvatarDb;
+            TxtOrdersCsv.Text = ConfigService.Current.Csv.Orders;
             TxtActualFlightCsv.Text = ConfigService.Current.Csv.ActualFlight; // neu
         }
 
@@ -50,6 +51,8 @@ namespace CateringWPF
         private void BrowseCabin_Click(object sender, RoutedEventArgs e) => BrowseFolder(TxtCabin);
         private void BrowseCateringCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtCateringCsv);
         private void BrowseAvatarDbCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtAvatarDbCsv);
+        private void BrowseOrdersCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtOrdersCsv);
+
         private void BrowseActualFlightCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtActualFlightCsv); // neu
 
         // --- Speichern ---
@@ -61,6 +64,7 @@ namespace CateringWPF
             ConfigService.Current.Paths.Cabin = TxtCabin.Text;
             ConfigService.Current.Csv.Catering = TxtCateringCsv.Text;
             ConfigService.Current.Csv.AvatarDb = TxtAvatarDbCsv.Text;
+            ConfigService.Current.Csv.Orders = TxtOrdersCsv.Text;
             ConfigService.Current.Csv.ActualFlight = TxtActualFlightCsv.Text; // neu
 
             ConfigService.Save();

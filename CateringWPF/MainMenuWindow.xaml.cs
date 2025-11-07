@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using System;
+using System.IO;
+using System.Windows;
 
 namespace CateringWPF
 {
@@ -10,7 +12,12 @@ namespace CateringWPF
 
             // Config beim Start laden
             ConfigService.Load();
+
+            // Catering-Datei Zeitstempel anzeigen
+            UpdateCateringTimestamp();
         }
+
+        #region Button Clicks
 
         private void BtnCatering_Click(object sender, RoutedEventArgs e)
         {
@@ -28,11 +35,13 @@ namespace CateringWPF
             try
             {
                 // CateringWindow erzeugen und öffnen, MainMenuWindow bleibt offen
-                var cateringWin = new CateringWindow();
-                cateringWin.Owner = this; // optional für modale Verknüpfung
+                var cateringWin = new CateringWindow
+                {
+                    Owner = this // optional für modale Verknüpfung
+                };
                 cateringWin.Show();
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 MessageBox.Show($"Fehler beim Starten des Catering-Fensters:\n{ex.Message}",
                                 "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -47,12 +56,54 @@ namespace CateringWPF
             };
             settingsWin.ShowDialog();
         }
+
         private void BtnAvatarMapping_Click(object sender, RoutedEventArgs e)
         {
-            var avatarWindow = new AvatarMappingWindow();
-            avatarWindow.Owner = this;
+            var avatarWindow = new AvatarMappingWindow
+            {
+                Owner = this
+            };
             avatarWindow.Show();
         }
 
+        private void BtnClearCatering_Click(object sender, RoutedEventArgs e)
+        {
+            string path = ConfigService.Current.Csv.Catering;
+            if (!File.Exists(path))
+            {
+                MessageBox.Show("Catering-Datei existiert nicht.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var result = MessageBox.Show("Möchten Sie die Catering-Datei wirklich leeren?",
+                                         "Catering leeren", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (result == MessageBoxResult.Yes)
+            {
+                // Datei mit Header neu erstellen
+                File.WriteAllText(path, "Name,Sitzplatz,Avatar,orders1,orders2,orders3,orders4");
+                UpdateCateringTimestamp();
+                MessageBox.Show("Catering-Datei wurde geleert.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        #endregion
+
+        #region Helper
+
+        private void UpdateCateringTimestamp()
+        {
+            string path = ConfigService.Current.Csv.Catering;
+            if (File.Exists(path))
+            {
+                var info = new FileInfo(path);
+                TxtCateringTimestamp.Text = $"Letzte Änderung: {info.LastWriteTime}";
+            }
+            else
+            {
+                TxtCateringTimestamp.Text = "Catering-Datei existiert nicht.";
+            }
+        }
+
+        #endregion
     }
 }
