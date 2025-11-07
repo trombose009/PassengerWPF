@@ -23,6 +23,7 @@ namespace CateringWPF
 
             LoadAvatarDb();
             LoadFlightData();
+            LoadCateringCsv();
             SetupDataGrid();
 
             timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(updateInterval) };
@@ -45,7 +46,7 @@ namespace CateringWPF
 
             if (File.Exists(avatarDbPath))
             {
-                var lines = File.ReadAllLines(avatarDbPath).Skip(1); // Header
+                var lines = File.ReadAllLines(avatarDbPath).Skip(1);
                 foreach (var line in lines)
                 {
                     var parts = line.Split(',');
@@ -58,15 +59,19 @@ namespace CateringWPF
         private void SaveAvatarDb()
         {
             string avatarDbPath = ConfigService.Current.Csv.AvatarDb;
-            var lines = avatarDb.Select(x => $"{x.Name},{x.Avatar}");
-            File.WriteAllLines(avatarDbPath, new[] { "Name,Avatar" }.Concat(lines));
+
+            using var writer = new StreamWriter(avatarDbPath);
+            writer.WriteLine("Name,Avatar");
+            foreach (var item in avatarDb)
+            {
+                writer.WriteLine($"{item.Name},{item.Avatar}");
+            }
         }
 
         private void LoadFlightData()
         {
             string actualFlightPath = ConfigService.Current.Csv.ActualFlight;
-            if (!File.Exists(actualFlightPath))
-                return;
+            if (!File.Exists(actualFlightPath)) return;
 
             var avatarFolder = ConfigService.Current.Paths.Avatars;
 
@@ -78,11 +83,9 @@ namespace CateringWPF
 
                 string name = parts[0];
                 string seat = parts[1];
-                string[] orders = parts.Skip(2).Take(4).ToArray();
 
                 var existingDb = avatarDb.FirstOrDefault(x => x.Name == name);
-                string avatar = existingDb?.Avatar ?? GetRandomAvatar(avatarFolder);
-
+                string avatar = existingDb?.Avatar ?? "default.png";
                 if (existingDb == null)
                     avatarDb.Add(new AvatarDbItem { Name = name, Avatar = avatar });
 
@@ -91,8 +94,10 @@ namespace CateringWPF
                     Name = name,
                     Sitzplatz = seat,
                     Avatar = avatar,
-                    Orders = orders
+                    Orders = new[] { "placeholder.png", "placeholder.png", "placeholder.png", "placeholder.png" }
                 };
+
+                passenger.SetOrdersFolder(ConfigService.Current.Paths.Orders);
                 passenger.UpdateAvatarImage(avatarFolder);
                 cateringData.Add(passenger);
             }
@@ -107,7 +112,8 @@ namespace CateringWPF
             writer.WriteLine("Name,Sitzplatz,Avatar,orders1,orders2,orders3,orders4");
             foreach (var item in cateringData)
             {
-                writer.WriteLine($"{item.Name},{item.Sitzplatz},{item.Avatar},{string.Join(",", item.Orders)}");
+                var orders = item.Orders.Select(o => string.IsNullOrEmpty(o) ? "placeholder.png" : o);
+                writer.WriteLine($"{item.Name},{item.Sitzplatz},{item.Avatar},{string.Join(",", orders)}");
             }
         }
 
@@ -116,9 +122,7 @@ namespace CateringWPF
             if (!Directory.Exists(avatarFolder))
                 Directory.CreateDirectory(avatarFolder);
 
-            var files = Directory.GetFiles(avatarFolder, "*.png")
-                                 .Select(Path.GetFileName)
-                                 .ToArray();
+            var files = Directory.GetFiles(avatarFolder, "*.png").Select(Path.GetFileName).ToArray();
             return files.Length > 0 ? files[new Random().Next(files.Length)] : "placeholder.png";
         }
 
@@ -194,51 +198,148 @@ namespace CateringWPF
 
         private void Timer_Tick(object sender, EventArgs e)
         {
+            ApplyActualFlightChanges();
+            ProcessOrders();
+            ReloadCateringCsvToGui();
+        }
+
+        private void ApplyActualFlightChanges()
+        {
             string actualFlightPath = ConfigService.Current.Csv.ActualFlight;
             string avatarFolder = ConfigService.Current.Paths.Avatars;
 
             if (!File.Exists(actualFlightPath)) return;
 
             var lines = File.ReadAllLines(actualFlightPath).Skip(1);
-            var latest = lines.Select(l =>
-            {
-                var parts = l.Split(',');
-                return new { Name = parts[0], Sitzplatz = parts[1], Orders = parts.Skip(2).Take(4).ToArray() };
-            }).ToList();
+            var latestNames = lines.Select(l => l.Split(',')[0]).ToHashSet();
 
             // Entfernen nicht mehr vorhandener Passagiere
-            var toRemove = cateringData.Where(cd => !latest.Any(l => l.Name == cd.Name && l.Sitzplatz == cd.Sitzplatz)).ToList();
+            var toRemove = cateringData.Where(cd => !latestNames.Contains(cd.Name)).ToList();
             foreach (var r in toRemove) cateringData.Remove(r);
 
-            // Hinzufügen neuer Passagiere / Updates
-            foreach (var l in latest)
+            // Neue Passagiere hinzufügen
+            foreach (var l in lines)
             {
-                var existing = cateringData.FirstOrDefault(cd => cd.Name == l.Name && cd.Sitzplatz == l.Sitzplatz);
+                var parts = l.Split(',');
+                if (parts.Length < 2) continue;
+
+                string name = parts[0];
+                string seat = parts[1];
+
+                var existing = cateringData.FirstOrDefault(cd => cd.Name == name);
                 if (existing == null)
                 {
-                    var existingDb = avatarDb.FirstOrDefault(a => a.Name == l.Name);
-                    string avatar = existingDb?.Avatar ?? GetRandomAvatar(avatarFolder);
-                    if (existingDb == null) avatarDb.Add(new AvatarDbItem { Name = l.Name, Avatar = avatar });
+                    var db = avatarDb.FirstOrDefault(a => a.Name == name);
+                    string avatar = db?.Avatar ?? "default.png";
+                    if (db == null) avatarDb.Add(new AvatarDbItem { Name = name, Avatar = avatar });
 
-                    var passenger = new PassengerItem
+                    var p = new PassengerItem
                     {
-                        Name = l.Name,
-                        Sitzplatz = l.Sitzplatz,
-                        Avatar = avatar,
-                        Orders = l.Orders
+                        Name = name,
+                        Sitzplatz = seat,
+                        Avatar = avatar
                     };
-                    passenger.UpdateAvatarImage(avatarFolder);
-                    cateringData.Add(passenger);
+
+                    // Orders aus catering.csv laden
+                    var cateringCsvPath = ConfigService.Current.Csv.Catering;
+                    if (File.Exists(cateringCsvPath))
+                    {
+                        var oldLine = File.ReadAllLines(cateringCsvPath).Skip(1)
+                            .FirstOrDefault(x => x.Split(',')[0] == name);
+
+                        if (oldLine != null)
+                        {
+                            var partsOld = oldLine.Split(',');
+                            p.Orders = new[] { partsOld[3], partsOld[4], partsOld[5], partsOld[6] };
+                        }
+                        else
+                        {
+                            p.Orders = new string[4];
+                        }
+                    }
+                    else
+                    {
+                        p.Orders = new[] { "placeholder.png", "placeholder.png", "placeholder.png", "placeholder.png" };
+                    }
+
+                    p.SetOrdersFolder(ConfigService.Current.Paths.Orders);
+                    p.UpdateAvatarImage(avatarFolder);
+                    cateringData.Add(p);
                 }
                 else
                 {
-                    existing.Orders = l.Orders;
+                    existing.Sitzplatz = seat;
                     existing.UpdateAvatarImage(avatarFolder);
                 }
             }
+        }
+
+        private void ProcessOrders()
+        {
+            string ordersCsvPath = ConfigService.Current.Csv.Orders;
+            if (!File.Exists(ordersCsvPath)) return;
+
+            var orderLines = File.ReadAllLines(ordersCsvPath).Skip(1).ToList();
+            if (orderLines.Count == 0) return;
+
+            foreach (var line in orderLines)
+            {
+                var parts = line.Split(',');
+                if (parts.Length < 2) continue;
+
+                string name = parts[0];
+                string orderFile = parts[1];
+
+                var pax = cateringData.FirstOrDefault(x => x.Name == name);
+                if (pax == null) continue;
+
+                var orders = pax.Orders.ToList();
+                int freeIndex = orders.IndexOf("placeholder.png");
+                if (freeIndex >= 0)
+                    orders[freeIndex] = orderFile;
+                else
+                {
+                    orders.RemoveAt(0);
+                    orders.Add(orderFile);
+                }
+
+                pax.Orders = orders.ToArray();
+            }
+
+            SaveCateringCsv();
+            File.WriteAllText(ordersCsvPath, "Name,order");
+        }
+
+        private void ReloadCateringCsvToGui()
+        {
+            string avatarFolder = ConfigService.Current.Paths.Avatars;
+            string ordersFolder = ConfigService.Current.Paths.Orders;
+
+            foreach (var pax in cateringData)
+            {
+                pax.SetOrdersFolder(ordersFolder);
+                pax.UpdateAvatarImage(avatarFolder);
+            }
 
             AvatarDataGrid.Items.Refresh();
-            SaveCateringCsv();
+        }
+
+        private void LoadCateringCsv()
+        {
+            string catering = ConfigService.Current.Csv.Catering;
+            if (!File.Exists(catering)) return;
+
+            var lines = File.ReadAllLines(catering).Skip(1);
+            foreach (var line in lines)
+            {
+                var parts = line.Split(',');
+                if (parts.Length < 7) continue;
+                var pax = cateringData.FirstOrDefault(x => x.Name == parts[0]);
+                if (pax != null)
+                {
+                    pax.Orders = new[] { parts[3], parts[4], parts[5], parts[6] };
+                }
+            }
         }
 
         #endregion
@@ -252,7 +353,15 @@ namespace CateringWPF
         public string[] Orders { get; set; } = new string[4];
 
         public BitmapImage AvatarImage { get; set; }
-        public BitmapImage[] OrdersImages => Orders.Select(o => LoadImage(o)).ToArray();
+
+        private string ordersFolder = "";
+
+        public void SetOrdersFolder(string folder)
+        {
+            ordersFolder = folder;
+        }
+
+        public BitmapImage[] OrdersImages => Orders.Select(o => LoadImage(o, ordersFolder)).ToArray();
 
         public void UpdateAvatarImage(string folder)
         {
@@ -263,19 +372,14 @@ namespace CateringWPF
         {
             try
             {
-                string path = string.IsNullOrEmpty(fileName)
-                    ? Path.Combine(folder, "placeholder.png")
-                    : Path.Combine(folder, fileName);
-
+                string path = string.IsNullOrEmpty(fileName) ? Path.Combine(folder, "placeholder.png") : Path.Combine(folder, fileName);
                 if (!File.Exists(path))
                     path = Path.Combine(folder, "placeholder.png");
 
-                // Absoluter Pfad für BitmapImage
                 return new BitmapImage(new Uri(Path.GetFullPath(path)));
             }
             catch
             {
-                // Fallback
                 return new BitmapImage();
             }
         }
