@@ -25,7 +25,6 @@ namespace CateringWPF
             LoadFlightData();
             SetupDataGrid();
 
-            // Timer für Refresh und Save
             timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(updateInterval) };
             timer.Tick += Timer_Tick;
             timer.Start();
@@ -46,7 +45,7 @@ namespace CateringWPF
 
             if (File.Exists(avatarDbPath))
             {
-                var lines = File.ReadAllLines(avatarDbPath).Skip(1); // Header überspringen
+                var lines = File.ReadAllLines(avatarDbPath).Skip(1); // Header
                 foreach (var line in lines)
                 {
                     var parts = line.Split(',');
@@ -59,7 +58,6 @@ namespace CateringWPF
         private void SaveAvatarDb()
         {
             string avatarDbPath = ConfigService.Current.Csv.AvatarDb;
-
             var lines = avatarDb.Select(x => $"{x.Name},{x.Avatar}");
             File.WriteAllLines(avatarDbPath, new[] { "Name,Avatar" }.Concat(lines));
         }
@@ -67,42 +65,42 @@ namespace CateringWPF
         private void LoadFlightData()
         {
             string actualFlightPath = ConfigService.Current.Csv.ActualFlight;
-
             if (!File.Exists(actualFlightPath))
-            {
-                MessageBox.Show($"Keine Daten in {actualFlightPath} gefunden!");
                 return;
-            }
 
             var avatarFolder = ConfigService.Current.Paths.Avatars;
 
-            var lines = File.ReadAllLines(actualFlightPath).Skip(1); // Header
+            var lines = File.ReadAllLines(actualFlightPath).Skip(1);
             foreach (var line in lines)
             {
                 var parts = line.Split(',');
+                if (parts.Length < 2) continue;
+
                 string name = parts[0];
                 string seat = parts[1];
                 string[] orders = parts.Skip(2).Take(4).ToArray();
 
                 var existingDb = avatarDb.FirstOrDefault(x => x.Name == name);
                 string avatar = existingDb?.Avatar ?? GetRandomAvatar(avatarFolder);
+
                 if (existingDb == null)
                     avatarDb.Add(new AvatarDbItem { Name = name, Avatar = avatar });
 
-                cateringData.Add(new PassengerItem
+                var passenger = new PassengerItem
                 {
                     Name = name,
                     Sitzplatz = seat,
                     Avatar = avatar,
                     Orders = orders
-                });
+                };
+                passenger.UpdateAvatarImage(avatarFolder);
+                cateringData.Add(passenger);
             }
         }
 
         private void SaveCateringCsv()
         {
             string cateringCsvPath = ConfigService.Current.Csv.Catering;
-
             if (cateringData.Count == 0) return;
 
             using var writer = new StreamWriter(cateringCsvPath);
@@ -121,7 +119,6 @@ namespace CateringWPF
             var files = Directory.GetFiles(avatarFolder, "*.png")
                                  .Select(Path.GetFileName)
                                  .ToArray();
-
             return files.Length > 0 ? files[new Random().Next(files.Length)] : "placeholder.png";
         }
 
@@ -133,7 +130,6 @@ namespace CateringWPF
         {
             AvatarDataGrid.ItemsSource = cateringData;
 
-            // Name & Sitzplatz Columns
             AvatarDataGrid.Columns.Add(new DataGridTextColumn { Header = "Name", Binding = new System.Windows.Data.Binding("Name") });
             AvatarDataGrid.Columns.Add(new DataGridTextColumn { Header = "Sitzplatz", Binding = new System.Windows.Data.Binding("Sitzplatz") });
 
@@ -154,7 +150,7 @@ namespace CateringWPF
             colButton.CellTemplate = new DataTemplate { VisualTree = btnFactory };
             AvatarDataGrid.Columns.Add(colButton);
 
-            // Orders Columns (Bilder)
+            // Orders Columns
             for (int i = 0; i < 4; i++)
             {
                 var col = new DataGridTemplateColumn { Header = $"Order{i + 1}" };
@@ -172,7 +168,6 @@ namespace CateringWPF
             if (sender is Button btn && btn.DataContext is PassengerItem item)
             {
                 var avatarFolder = ConfigService.Current.Paths.Avatars;
-
                 var dlg = new OpenFileDialog
                 {
                     InitialDirectory = avatarFolder,
@@ -225,22 +220,21 @@ namespace CateringWPF
                     string avatar = existingDb?.Avatar ?? GetRandomAvatar(avatarFolder);
                     if (existingDb == null) avatarDb.Add(new AvatarDbItem { Name = l.Name, Avatar = avatar });
 
-                    cateringData.Add(new PassengerItem
+                    var passenger = new PassengerItem
                     {
                         Name = l.Name,
                         Sitzplatz = l.Sitzplatz,
                         Avatar = avatar,
                         Orders = l.Orders
-                    });
+                    };
+                    passenger.UpdateAvatarImage(avatarFolder);
+                    cateringData.Add(passenger);
                 }
                 else
                 {
                     existing.Orders = l.Orders;
+                    existing.UpdateAvatarImage(avatarFolder);
                 }
-
-                // AvatarImage aktualisieren
-                foreach (var cd in cateringData)
-                    cd.UpdateAvatarImage(avatarFolder);
             }
 
             AvatarDataGrid.Items.Refresh();
@@ -265,15 +259,25 @@ namespace CateringWPF
             AvatarImage = LoadImage(Avatar, folder);
         }
 
-        private BitmapImage LoadImage(string fileName, string folder = null)
+        private BitmapImage LoadImage(string fileName, string folder = "")
         {
-            if (folder == null) folder = "";
+            try
+            {
+                string path = string.IsNullOrEmpty(fileName)
+                    ? Path.Combine(folder, "placeholder.png")
+                    : Path.Combine(folder, fileName);
 
-            string path = string.IsNullOrEmpty(fileName) ? Path.Combine(folder, "placeholder.png") : Path.Combine(folder, fileName);
-            if (!File.Exists(path))
-                path = Path.Combine(folder, "placeholder.png");
+                if (!File.Exists(path))
+                    path = Path.Combine(folder, "placeholder.png");
 
-            return new BitmapImage(new Uri(path, UriKind.Absolute));
+                // Absoluter Pfad für BitmapImage
+                return new BitmapImage(new Uri(Path.GetFullPath(path)));
+            }
+            catch
+            {
+                // Fallback
+                return new BitmapImage();
+            }
         }
     }
 
