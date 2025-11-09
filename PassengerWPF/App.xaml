@@ -1,7 +1,7 @@
-﻿<Application x:Class="CateringWPF.App"
+﻿<Application x:Class="PassengerWPF.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:CateringWPF">
+             xmlns:local="clr-namespace:PassengerWPF">
     <Application.Resources>
         <!-- Hier können später Styles, Templates etc. rein -->
     </Application.Resources>

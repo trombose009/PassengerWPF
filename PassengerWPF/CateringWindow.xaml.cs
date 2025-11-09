@@ -7,7 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 
-namespace CateringWPF
+namespace PassengerWPF
 {
     public partial class CateringWindow : Window
     {
@@ -15,14 +15,15 @@ namespace CateringWPF
         private readonly Dictionary<string, double> baseRowY;
         private readonly Dictionary<string, double> avatarSize;
         private readonly HashSet<string> occupiedSeats = new();
-        private readonly string cateringCsvPath;
+        private readonly string passengerDataPath;
         private List<Passenger> passengers = new();
 
         public CateringWindow()
         {
             InitializeComponent();
 
-            cateringCsvPath = ConfigService.Current.Csv.Catering;
+            // Pfad jetzt PassengerData
+            passengerDataPath = ConfigService.Current.Csv.PassengerData;
 
             // Sitz-Logik
             seatPositions = new()
@@ -59,9 +60,9 @@ namespace CateringWPF
             passengers.Clear();
             occupiedSeats.Clear();
 
-            if (!File.Exists(cateringCsvPath)) return;
+            if (!File.Exists(passengerDataPath)) return;
 
-            var lines = File.ReadAllLines(cateringCsvPath).Skip(1);
+            var lines = File.ReadAllLines(passengerDataPath).Skip(1);
             string avatarDir = ConfigService.Current.Paths.Avatars;
 
             foreach (var line in lines)
@@ -92,7 +93,7 @@ namespace CateringWPF
         {
             if (passengers.Count == 0) return;
 
-            using var writer = new StreamWriter(cateringCsvPath);
+            using var writer = new StreamWriter(passengerDataPath);
             writer.WriteLine("Name,Sitzplatz,Avatar,orders1,orders2,orders3,orders4");
 
             foreach (var p in passengers)
@@ -111,7 +112,6 @@ namespace CateringWPF
             {
                 string assignedSeat = null;
 
-                // Fensterplätze bevorzugt
                 foreach (var row in seatPositions.Keys)
                 {
                     foreach (var seat in new[] { "A", "F", "B", "C", "D", "E" })
@@ -179,7 +179,6 @@ namespace CateringWPF
 
         private void PlacePassengers()
         {
-            // Nur Passagier-Avatare löschen, Stewardess und Hintergrund bleiben
             var passengerImgs = CabinCanvas.Children
                                            .OfType<Image>()
                                            .Where(img => img.Tag?.ToString() == "avatar_passenger")
@@ -192,11 +191,9 @@ namespace CateringWPF
 
             foreach (var p in passengers)
             {
-                // Skip, wenn Avatar bereits gezeichnet wurde
                 if (p.AvatarImage != null && CabinCanvas.Children.Contains(p.AvatarImage))
                     continue;
 
-                // Sitzplatz prüfen
                 if (string.IsNullOrEmpty(p.Seat))
                     AssignSeatToPassenger(p);
 
@@ -249,13 +246,11 @@ namespace CateringWPF
             }
         }
 
-
         private string DetermineRowFromSeat(string seat)
         {
             if (string.IsNullOrEmpty(seat)) return "back";
 
-            int rowNum;
-            if (int.TryParse(new string(seat.TakeWhile(char.IsDigit).ToArray()), out rowNum))
+            if (int.TryParse(new string(seat.TakeWhile(char.IsDigit).ToArray()), out int rowNum))
             {
                 if (rowNum <= 5) return "front";
                 if (rowNum <= 15) return "near";
@@ -278,7 +273,6 @@ namespace CateringWPF
 
         private async void StartServiceButton_Click(object sender, RoutedEventArgs e)
         {
-            // Bewegungslogik unverändert
             await Task.CompletedTask;
         }
 

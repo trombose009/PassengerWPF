@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "PassengerWPF": {
+      "commandName": "Project",
+      "workingDirectory": "$(ProjectDir)"
+    }
+  }
+}

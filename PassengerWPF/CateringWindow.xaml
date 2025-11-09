@@ -1,4 +1,4 @@
-﻿<Window x:Class="CateringWPF.CateringWindow"
+﻿<Window x:Class="PassengerWPF.CateringWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Sitzplatz-Visualisierung"

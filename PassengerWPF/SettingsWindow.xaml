@@ -1,4 +1,4 @@
-﻿<Window x:Class="CateringWPF.SettingsWindow"
+﻿<Window x:Class="PassengerWPF.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Einstellungen"
@@ -18,7 +18,7 @@
             <RowDefinition Height="Auto"/>
             <!-- Cabin -->
             <RowDefinition Height="Auto"/>
-            <!-- Catering CSV -->
+            <!-- PassengerData CSV -->
             <RowDefinition Height="Auto"/>
             <!-- Avatar DB CSV -->
             <RowDefinition Height="Auto"/>
@@ -55,8 +55,8 @@
         <TextBox x:Name="TxtCabin" Grid.Row="3" Grid.Column="1" Margin="5"/>
         <Button Content="..." Grid.Row="3" Grid.Column="2" Width="30" Click="BrowseCabin_Click"/>
 
-        <!-- Catering CSV -->
-        <TextBlock Text="Catering CSV:" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Margin="0,5"/>
+        <!-- PassengerData CSV -->
+        <TextBlock Text="PassengerData CSV:" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Margin="0,5"/>
         <TextBox x:Name="TxtCateringCsv" Grid.Row="4" Grid.Column="1" Margin="5"/>
         <Button Content="..." Grid.Row="4" Grid.Column="2" Width="30" Click="BrowseCateringCsv_Click"/>
 

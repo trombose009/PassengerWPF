@@ -3,7 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Ookii.Dialogs.Wpf; // NuGet Paket "Ookii.Dialogs.Wpf" nötig
 
-namespace CateringWPF
+namespace PassengerWPF
 {
     public partial class SettingsWindow : Window
     {
@@ -16,7 +16,7 @@ namespace CateringWPF
             TxtOrders.Text = ConfigService.Current.Paths.Orders;
             TxtStewardess.Text = ConfigService.Current.Paths.Stewardess;
             TxtCabin.Text = ConfigService.Current.Paths.Cabin;
-            TxtCateringCsv.Text = ConfigService.Current.Csv.Catering;
+            TxtCateringCsv.Text = ConfigService.Current.Csv.PassengerData; // geändert
             TxtAvatarDbCsv.Text = ConfigService.Current.Csv.AvatarDb;
             TxtOrdersCsv.Text = ConfigService.Current.Csv.Orders;
             TxtActualFlightCsv.Text = ConfigService.Current.Csv.ActualFlight; // neu
@@ -62,7 +62,7 @@ namespace CateringWPF
             ConfigService.Current.Paths.Orders = TxtOrders.Text;
             ConfigService.Current.Paths.Stewardess = TxtStewardess.Text;
             ConfigService.Current.Paths.Cabin = TxtCabin.Text;
-            ConfigService.Current.Csv.Catering = TxtCateringCsv.Text;
+            ConfigService.Current.Csv.PassengerData = TxtCateringCsv.Text; // geändert
             ConfigService.Current.Csv.AvatarDb = TxtAvatarDbCsv.Text;
             ConfigService.Current.Csv.Orders = TxtOrdersCsv.Text;
             ConfigService.Current.Csv.ActualFlight = TxtActualFlightCsv.Text; // neu

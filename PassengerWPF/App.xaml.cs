@@ -1,7 +1,7 @@
-﻿using CateringWPF;
+﻿using PassengerWPF;
 using System.Windows; // WPF
 
-namespace CateringWPF
+namespace PassengerWPF
 {
     public partial class App : System.Windows.Application // <-- explizit WPF
     {
@@ -9,12 +9,13 @@ namespace CateringWPF
         {
             base.OnStartup(e);
 
-            // Config laden
             ConfigService.Load();
 
-            // MainMenuWindow starten
-            var mainMenu = new MainMenuWindow();
-            mainMenu.Show();
+            var main = new MainMenuWindow();
+            Application.Current.MainWindow = main;
+            main.Show();
         }
+
+
     }
 }
