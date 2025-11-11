@@ -1,18 +1,59 @@
 ﻿<Window x:Class="PassengerWPF.AvatarMappingWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Avatar-Zuordnung"
-        Width="1000" Height="600"
-        WindowStartupLocation="CenterScreen"
-        Background="LightGray">
-
-    <Grid>
-        <DataGrid x:Name="AvatarDataGrid"
-                  AutoGenerateColumns="False"
-                  CanUserAddRows="False"
-                  RowHeight="72"
-                  Background="LightGray"
-                  AlternatingRowBackground="Gainsboro"
-                  Margin="10"/>
-    </Grid>
+        Title="Avatar Mapping" Height="600" Width="1000">
+    <DockPanel>
+        <Button Content="Save" DockPanel.Dock="Top" Height="30" Click="BtnSave_Click"/>
+        <DataGrid x:Name="DataGridPassengers" AutoGenerateColumns="False" CanUserAddRows="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Sitzplatz" Binding="{Binding Sitzplatz}" IsReadOnly="True"/>
+                <DataGridTemplateColumn Header="Avatar">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Click="AvatarButton_Click">
+                                <Image Source="{Binding AvatarImagePath}" Width="50" Height="50"/>
+                            </Button>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Order1">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Click="OrderButton_Click" Tag="0">
+                                <Image Source="{Binding OrdersPaths[0]}" Width="50" Height="50"/>
+                            </Button>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Order2">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Click="OrderButton_Click" Tag="1">
+                                <Image Source="{Binding OrdersPaths[1]}" Width="50" Height="50"/>
+                            </Button>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Order3">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Click="OrderButton_Click" Tag="2">
+                                <Image Source="{Binding OrdersPaths[2]}" Width="50" Height="50"/>
+                            </Button>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Order4">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Click="OrderButton_Click" Tag="3">
+                                <Image Source="{Binding OrdersPaths[3]}" Width="50" Height="50"/>
+                            </Button>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
 </Window>

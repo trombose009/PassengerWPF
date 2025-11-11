@@ -22,7 +22,10 @@ namespace PassengerWPF
                                 "Hinweis", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 // Einstellungen sofort öffnen
-                var settingsWin = new SettingsWindow();
+                var settingsWin = new SettingsWindow
+                {
+                    Owner = this
+                };
                 settingsWin.ShowDialog();
 
                 // Nach dem Schließen erneut prüfen
@@ -48,8 +51,10 @@ namespace PassengerWPF
 
             try
             {
-                var cateringWin = new CateringWindow();
-                cateringWin.Owner = this;   // HIER ok -> MainMenu ist sichtbar
+                var cateringWin = new CateringWindow
+                {
+                    Owner = this
+                };
                 cateringWin.Show();
             }
             catch (System.Exception ex)
@@ -61,15 +66,19 @@ namespace PassengerWPF
 
         private void BtnSettings_Click(object sender, RoutedEventArgs e)
         {
-            var settingsWin = new SettingsWindow();
-            settingsWin.Owner = this;
+            var settingsWin = new SettingsWindow
+            {
+                Owner = this
+            };
             settingsWin.ShowDialog();
         }
 
         private void BtnAvatarMapping_Click(object sender, RoutedEventArgs e)
         {
-            var avatarWin = new AvatarMappingWindow();
-            avatarWin.Owner = this;
+            var avatarWin = new AvatarMappingWindow
+            {
+                Owner = this
+            };
             avatarWin.Show();
         }
 
