@@ -4,28 +4,26 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Media;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Forms.Integration;
-using System.Windows.Threading;
 using WinForms = System.Windows.Forms;
 
 namespace PassengerWPF
 {
     public partial class LiveBoardingWindow : Window
     {
-        private string basePath;
+        // --- Pfade ---
         private string csvPath;
         private string countCsvPath;
         private string actualFlightPath;
-        private string soundPath;
+        private string boardingSoundPath;
         private string outputImagePath;
         private string bgImagePath;
 
+        // --- UI / Daten ---
         private Dictionary<string, WinForms.Button> seatButtons = new();
         private List<WinForms.Label> boardingListLabels = new();
-
         private WinForms.Panel scrollPanel;
         private WinForms.Panel listPanel;
         private WinForms.PictureBox pictureBox;
@@ -38,20 +36,18 @@ namespace PassengerWPF
         {
             InitializeComponent();
 
-            // Basisverzeichnis
-            basePath = System.IO.Path.Combine(
-                Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).FullName,
-                "boarding");
+            // --- Basisverzeichnis für Fallbacks ---
+            string basePath = Path.Combine(Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).FullName, "boarding");
 
-            csvPath = Path.Combine(basePath, "boarding.csv");
+            // --- Pfade aus Config laden ---
+            csvPath = ConfigService.Current.Csv.PassengerData ?? Path.Combine(basePath, "boarding.csv");
             countCsvPath = Path.Combine(basePath, "boarding_count.csv");
-            actualFlightPath = Path.Combine(basePath, "actualflight.csv");
-            soundPath = Path.Combine(basePath, "bingbing.wav");
+            actualFlightPath = ConfigService.Current.Csv.ActualFlight ?? Path.Combine(basePath, "actualflight.csv");
+            boardingSoundPath = ConfigService.Current.Paths.BoardingSound ?? Path.Combine(basePath, "bingbing.wav");
             outputImagePath = Path.Combine(basePath, "boarding_render.png");
-            bgImagePath = Path.Combine(basePath, "bg.png");
+            bgImagePath = ConfigService.Current.Paths.BGImage ?? Path.Combine(basePath, "bg.png");
 
             SetupWinFormsHost();
-            LoadSeats();
             SetupListPanel();
             SetupControls();
             UpdateBoardingListFromActualFlight();
@@ -59,7 +55,7 @@ namespace PassengerWPF
 
         private void SetupWinFormsHost()
         {
-            // ScrollPanel (für Sitzplan)
+            // Panel für Sitzplan
             scrollPanel = new WinForms.Panel
             {
                 Location = new System.Drawing.Point(130, 60),
@@ -68,30 +64,33 @@ namespace PassengerWPF
                 BorderStyle = WinForms.BorderStyle.FixedSingle
             };
 
-            // Hintergrundbild
+            // Hintergrundbild laden
             if (!File.Exists(bgImagePath))
             {
-                System.Windows.MessageBox.Show($"Hintergrundbild nicht gefunden: {bgImagePath}");
-                Close();
-            }
-            else
-            {
-                bgImage = (Bitmap)Bitmap.FromFile(bgImagePath);
-                pictureBox = new WinForms.PictureBox
-                {
-                    Image = bgImage,
-                    SizeMode = WinForms.PictureBoxSizeMode.StretchImage,
-                    Size = new System.Drawing.Size(400, 1500),
-                    Location = new System.Drawing.Point(0, 0)
-                };
-                scrollPanel.Controls.Add(pictureBox);
+                MessageBox.Show($"Hintergrundbild nicht gefunden:\n{bgImagePath}", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
             }
 
-            // Host für WPF
-            var host = new WindowsFormsHost
+            bgImage = (Bitmap)Bitmap.FromFile(bgImagePath);
+
+            pictureBox = new WinForms.PictureBox
             {
-                Child = scrollPanel
+                Image = bgImage,
+                SizeMode = WinForms.PictureBoxSizeMode.StretchImage, // Skaliert Bild auf Panelgröße
+                Location = new System.Drawing.Point(0, 0),
+                Size = scrollPanel.ClientSize // Passt PictureBox der Panelgröße an
             };
+
+            scrollPanel.Controls.Add(pictureBox);
+
+            // Wenn das Panel die Größe ändert, PictureBox anpassen
+            scrollPanel.Resize += (s, e) => pictureBox.Size = scrollPanel.ClientSize;
+
+            // Buttons auf PictureBox platzieren
+            LoadSeats();
+
+            // WPF Host
+            var host = new WindowsFormsHost { Child = scrollPanel };
             Grid.SetRow(host, 0);
             MainGrid.Children.Add(host);
         }
@@ -102,7 +101,6 @@ namespace PassengerWPF
             int totalRows = 17;
             int seatWidth = 24, seatHeight = 27, xOffset = 128, yOffset = 305, colSpacing = 20, aisleSpacing = 30, rowSpacing = 36;
             var smallFont = new System.Drawing.Font("Segoe UI", 6.5f);
-            var toolTip = new WinForms.ToolTip();
 
             for (int row = 1; row <= totalRows; row++)
             {
@@ -116,7 +114,8 @@ namespace PassengerWPF
                         Width = seatWidth,
                         Height = seatHeight,
                         UseVisualStyleBackColor = true,
-                        BackColor = row <= 5 ? System.Drawing.Color.LightBlue : System.Drawing.Color.LightGray
+                        BackColor = row <= 5 ? System.Drawing.Color.LightBlue : System.Drawing.Color.LightGray,
+                        Parent = pictureBox // Buttons auf PictureBox platzieren
                     };
 
                     int x = xOffset + (i * colSpacing);
@@ -125,11 +124,13 @@ namespace PassengerWPF
                     btn.Location = new System.Drawing.Point(x, y);
 
                     seatButtons[seatLabel.ToUpper()] = btn;
-                    scrollPanel.Controls.Add(btn);
                     btn.BringToFront();
                 }
             }
         }
+
+
+        
 
         private void SetupListPanel()
         {
@@ -141,6 +142,7 @@ namespace PassengerWPF
                 BorderStyle = WinForms.BorderStyle.FixedSingle,
                 BackColor = System.Drawing.Color.FromArgb(179, 255, 255)
             };
+
             var host = new WindowsFormsHost { Child = listPanel };
             Grid.SetRow(host, 0);
             MainGrid.Children.Add(host);
@@ -148,6 +150,7 @@ namespace PassengerWPF
 
         private void SetupControls()
         {
+            // Toggle Button
             toggleButton = new WinForms.Button
             {
                 Text = "Start",
@@ -157,17 +160,19 @@ namespace PassengerWPF
             toggleButton.Click += ToggleButton_Click;
             scrollPanel.Controls.Add(toggleButton);
 
+            // Status Light
             statusLight = new WinForms.Panel
             {
                 Size = new System.Drawing.Size(20, 20),
                 Location = new System.Drawing.Point(385, 15),
                 BackColor = System.Drawing.Color.Gray
             };
-            System.Drawing.Drawing2D.GraphicsPath gp = new();
+            var gp = new System.Drawing.Drawing2D.GraphicsPath();
             gp.AddEllipse(0, 0, 20, 20);
             statusLight.Region = new System.Drawing.Region(gp);
             scrollPanel.Controls.Add(statusLight);
 
+            // Timer
             timer = new WinForms.Timer { Interval = 5000 };
             timer.Tick += (s, e) => ProcessBoarding();
         }
@@ -198,7 +203,7 @@ namespace PassengerWPF
             boardingListLabels.Clear();
 
             if (!File.Exists(actualFlightPath)) return;
-            var actualPassengers = File.Exists(actualFlightPath) ? ImportCsv(actualFlightPath) : new List<(string Name, string Seat)>();
+            var actualPassengers = ImportCsv(actualFlightPath);
 
             int yPos = 5;
             var font = new System.Drawing.Font("Segoe UI", 8);
@@ -230,8 +235,7 @@ namespace PassengerWPF
 
         private void ProcessBoarding()
         {
-            // CSV-Import und Sitzzuweisung hier umsetzen (analog PS-Skript)
-            // Sound abspielen etc.
+            PlaySound(boardingSoundPath); // z.B. beim Boarding
         }
 
         private List<(string Name, string Seat)> ImportCsv(string path)

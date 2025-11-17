@@ -21,6 +21,8 @@ namespace PassengerWPF
             TxtOrdersCsv.Text = ConfigService.Current.Csv.Orders;
             TxtActualFlightCsv.Text = ConfigService.Current.Csv.ActualFlight;
             TxtBgImage.Text = ConfigService.Current.Paths.BGImage;
+            TxtBoardingSound.Text = ConfigService.Current.Paths.BoardingSound;
+            TxtCabinMusic.Text = ConfigService.Current.Paths.CabinMusic;
         }
 
         private void BrowseFolder(TextBox target)
@@ -55,7 +57,8 @@ namespace PassengerWPF
         private void BrowseAvatarDbCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtAvatarDbCsv, "CSV Dateien|*.csv|Alle Dateien|*.*");
         private void BrowseOrdersCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtOrdersCsv, "CSV Dateien|*.csv|Alle Dateien|*.*");
         private void BrowseActualFlightCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtActualFlightCsv, "CSV Dateien|*.csv|Alle Dateien|*.*");
-
+        private void BrowseBoardingSound_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtBoardingSound);
+        private void BrowseCabinMusic_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtCabinMusic);
         private void BrowseBgImage_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtBgImage, "PNG Bilder|*.png|Alle Dateien|*.*");
 
         // --- Speichern ---
@@ -70,7 +73,8 @@ namespace PassengerWPF
             ConfigService.Current.Csv.Orders = TxtOrdersCsv.Text;
             ConfigService.Current.Csv.ActualFlight = TxtActualFlightCsv.Text;
             ConfigService.Current.Paths.BGImage = TxtBgImage.Text;
-
+            ConfigService.Current.Paths.BoardingSound = TxtBoardingSound.Text;
+            ConfigService.Current.Paths.CabinMusic = TxtCabinMusic.Text;
             ConfigService.Save();
 
             MessageBox.Show("Einstellungen gespeichert.", "Fertig", MessageBoxButton.OK, MessageBoxImage.Information);
