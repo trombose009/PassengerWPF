@@ -22,7 +22,6 @@ namespace PassengerWPF
         {
             InitializeComponent();
 
-            // Sitz-Logik
             seatPositions = new()
             {
                 ["back"] = new() { ["A"] = 280, ["B"] = 410, ["C"] = 535, ["D"] = 800, ["E"] = 930, ["F"] = 1060 },
@@ -52,6 +51,13 @@ namespace PassengerWPF
         {
             string cabinDir = ConfigService.Current.Paths.Cabin;
 
+            // Stewardess vorbereiten (im XAML deklariert)
+            Stewardess.Source = LoadStewardessImage("stfront.png");
+            Stewardess.RenderTransformOrigin = new Point(0.5, 1);
+            Stewardess.RenderTransform = new ScaleTransform(2.0, 2.0);
+            Canvas.SetLeft(Stewardess, 650);
+            Canvas.SetTop(Stewardess, 700);
+
             void AddImage(string fileName, int zIndex, bool hitTest = true)
             {
                 var imgPath = Path.Combine(cabinDir, fileName);
@@ -68,10 +74,17 @@ namespace PassengerWPF
                 CabinCanvas.Children.Add(img);
             }
 
+            // Zuerst Hintergrund
             AddImage("seatsbackground.png", 1);
+
+            // Dann Stewardess (bereits im XAML, kein Add nötig)
+
+            // Dann Sitzreihen, die die Stewardess überdecken können
             AddImage("seatsmiddle.png", 4, false);
             AddImage("seatsfront.png", 7, false);
         }
+
+
 
         private (string, string) GetRowAndSeatLetter(string seat)
         {
@@ -255,7 +268,6 @@ namespace PassengerWPF
 
                 await MoveStewardessToGangY(rowY, row);
 
-                // Links und Rechts bedienen
                 var leftPassenger = CabinCanvas.Children.OfType<Image>()
                     .Where(img => img.Tag?.ToString() == "avatar_passenger")
                     .Where(img => Math.Abs(Canvas.GetTop(img) - baseRowY[row]) < 1)
@@ -289,13 +301,12 @@ namespace PassengerWPF
             double speed = 3;
 
             Stewardess.Source = LoadStewardessImage("stheck.png");
-            Stewardess.RenderTransformOrigin = new Point(0.5, 1);
-            var scaleTransform = new ScaleTransform(startScale, startScale);
-            Stewardess.RenderTransform = scaleTransform;
-
-            Canvas.SetLeft(Stewardess, startX);
-            Canvas.SetTop(Stewardess, startY);
-            Panel.SetZIndex(Stewardess, 10);
+            var scaleTransform = Stewardess.RenderTransform as ScaleTransform;
+            if (scaleTransform == null)
+            {
+                scaleTransform = new ScaleTransform(startScale, startScale);
+                Stewardess.RenderTransform = scaleTransform;
+            }
 
             await SmoothMoveY(backY, scaleTransform, startScale, endScale, speed, "back");
         }
@@ -311,7 +322,6 @@ namespace PassengerWPF
             {
                 scaleTransform = new ScaleTransform(2.0, 2.0);
                 Stewardess.RenderTransform = scaleTransform;
-                Stewardess.RenderTransformOrigin = new Point(0.5, 1);
             }
 
             double startScale = scaleTransform.ScaleY;
@@ -333,18 +343,18 @@ namespace PassengerWPF
 
                 Canvas.SetTop(Stewardess, currentY);
 
-                // --- Z-Index fix ---
-                if (row == "back")
+                // Dynamisch Z-Index nach Reihe
+                switch (row)
                 {
-                    Panel.SetZIndex(Stewardess, 3); // hinter seatsmiddle(4) und seatsfront(7)
-                }
-                else if (row == "near")
-                {
-                    Panel.SetZIndex(Stewardess, 6); // hinter seatsfront(7)
-                }
-                else if (row == "front")
-                {
-                    Panel.SetZIndex(Stewardess, 8); // vor allen
+                    case "back":
+                        Panel.SetZIndex(Stewardess, 3); // hinter seatsmiddle(4) und seatsfront(7)
+                        break;
+                    case "near":
+                        Panel.SetZIndex(Stewardess, 6); // hinter seatsfront(7)
+                        break;
+                    case "front":
+                        Panel.SetZIndex(Stewardess, 8); // vor allen
+                        break;
                 }
 
                 double progress = Math.Abs(currentY - startY) / Math.Abs(targetY - startY);
@@ -359,28 +369,36 @@ namespace PassengerWPF
             scaleTransform.ScaleX = targetScale;
             scaleTransform.ScaleY = targetScale;
 
-            if (row == "back") Panel.SetZIndex(Stewardess, 3);
-            else if (row == "near") Panel.SetZIndex(Stewardess, 6);
-            else if (row == "front") Panel.SetZIndex(Stewardess, 8);
+            // Finaler Z-Index
+            switch (row)
+            {
+                case "back":
+                    Panel.SetZIndex(Stewardess, 3);
+                    break;
+                case "near":
+                    Panel.SetZIndex(Stewardess, 6);
+                    break;
+                case "front":
+                    Panel.SetZIndex(Stewardess, 8);
+                    break;
+            }
         }
+
 
         private async Task SmoothMoveX(double targetX, double yFixed, ScaleTransform scaleTransform, double speed)
         {
-            double startX = Canvas.GetLeft(Stewardess);
             while (Math.Abs(Canvas.GetLeft(Stewardess) - targetX) > 0.5)
             {
                 double currentX = Canvas.GetLeft(Stewardess);
-                double delta = (targetX - currentX) * 0.08; // kleiner als vorher (0.12 → 0.08) → langsamer
-                if (Math.Abs(delta) < 0.3) delta = Math.Sign(delta) * 0.3; // minimale Bewegung verlangsamt
+                double delta = (targetX - currentX) * 0.08;
+                if (Math.Abs(delta) < 0.3) delta = Math.Sign(delta) * 0.3;
                 Canvas.SetLeft(Stewardess, currentX + delta);
                 Canvas.SetTop(Stewardess, yFixed);
 
-                // Z-Index nach Y beibehalten
-                await Task.Delay(20); // etwas langsamer → gemütlicher
+                await Task.Delay(20);
             }
             Canvas.SetLeft(Stewardess, targetX);
         }
-
 
         private async Task StewardessServePassenger(Image passenger, bool isLeft, string row)
         {
@@ -399,7 +417,6 @@ namespace PassengerWPF
             {
                 scaleTransform = new ScaleTransform(2.0, 2.0);
                 Stewardess.RenderTransform = scaleTransform;
-                Stewardess.RenderTransformOrigin = new Point(0.5, 1);
             }
 
             double speed = 3;
@@ -409,7 +426,6 @@ namespace PassengerWPF
 
             await SmoothMoveX(targetX, yFixed, scaleTransform, speed);
 
-            // Wippen 3x
             double originalX = Canvas.GetLeft(Stewardess);
             double amplitude = 6;
             for (int i = 0; i < 3; i++)
@@ -423,7 +439,6 @@ namespace PassengerWPF
 
             ShowOrderIconsFor(p);
 
-            // zurück in den Gang
             double gangX = 650;
             Stewardess.Source = LoadStewardessImage(isLeft ? "strechts.png" : "stlinks.png");
             await SmoothMoveX(gangX, yFixed, scaleTransform, speed);
