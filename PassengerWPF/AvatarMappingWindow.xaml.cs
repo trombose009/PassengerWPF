@@ -1,12 +1,10 @@
 ﻿using Microsoft.Win32;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Threading;
 
 namespace PassengerWPF
 {
@@ -23,7 +21,7 @@ namespace PassengerWPF
         {
             InitializeComponent();
 
-            passengerDataPath = ConfigService.Current.Csv.PassengerData;
+            passengerDataPath = ConfigService.Current.Csv.PassengerData; // <-- Csv, nicht Paths
             avatarDbPath = ConfigService.Current.Csv.AvatarDb;
             avatarDir = ConfigService.Current.Paths.Avatars;
             ordersDir = ConfigService.Current.Paths.Orders;
@@ -36,8 +34,8 @@ namespace PassengerWPF
         {
             passengers.Clear();
 
-            // Avatar-DB laden
-            var avatarDb = new Dictionary<string, string>();
+            // Avatar-DB laden (Name → Avatar-Dateiname)
+            var avatarDb = new System.Collections.Generic.Dictionary<string, string>();
             if (File.Exists(avatarDbPath))
             {
                 foreach (var line in File.ReadAllLines(avatarDbPath).Skip(1))
@@ -66,13 +64,19 @@ namespace PassengerWPF
                 if (string.IsNullOrEmpty(avatarFile) || !File.Exists(Path.Combine(avatarDir, avatarFile)))
                     avatarFile = "placeholder.png";
 
-                passengers.Add(new PassengerViewModel
+                var p = new PassengerViewModel
                 {
                     Name = name,
                     Sitzplatz = seat,
                     Avatar = avatarFile,
-                    Orders = new string[] { parts[3], parts[4], parts[5], parts[6] }
-                });
+                    Order1 = parts[3],
+                    Order2 = parts[4],
+                    Order3 = parts[5],
+                    Order4 = parts[6]
+                };
+
+                // AvatarImagePath und OrderXImagePath sind jetzt durch ViewModel-Setter bereits gesetzt
+                passengers.Add(p);
             }
         }
 
@@ -83,32 +87,20 @@ namespace PassengerWPF
             var dlg = new OpenFileDialog
             {
                 Title = "Avatar auswählen",
-                Filter = "PNG Dateien|*.png"
+                Filter = "PNG Dateien|*.png;*.jpg;*.jpeg",
+                InitialDirectory = avatarDir
             };
 
             if (dlg.ShowDialog() == true)
             {
-                Dispatcher.Invoke(() =>
-                {
-                    string fileName = Path.GetFileNameWithoutExtension(dlg.FileName);
-                    string ext = Path.GetExtension(dlg.FileName);
-                    string destFile;
-                    int counter = 1;
+                // wir speichern nur Dateiname in Avatar, aber setzen auch den ImagePath auf den absoluten Pfad
+                passenger.Avatar = Path.GetFileName(dlg.FileName);
+                passenger.AvatarImagePath = dlg.FileName;
 
-                    do
-                    {
-                        string newName = counter == 1 ? $"{fileName}{ext}" : $"{fileName}_{counter}{ext}";
-                        destFile = Path.Combine(avatarDir, newName);
-                        counter++;
-                    } while (File.Exists(destFile));
-
-                    File.Copy(dlg.FileName, destFile, true);
-
-                    passenger.Avatar = Path.GetFileName(destFile);
-                    passenger.AvatarImagePath = destFile;
-
-                    SaveAvatarDb();
-                }, DispatcherPriority.Background);
+                // Sofort persistieren in Avatar-DB (falls du das noch willst)
+                SaveAvatarDb();
+                // und PassengerData weil Avatar-Filename geändert wurde
+                SavePassengerData();
             }
         }
 
@@ -116,90 +108,69 @@ namespace PassengerWPF
         {
             if (sender is not Button btn || btn.DataContext is not PassengerViewModel passenger) return;
 
-            int orderIndex = (int)btn.Tag;
+            if (!int.TryParse(btn.Tag?.ToString(), out int orderIndex))
+            {
+                MessageBox.Show("Fehler: Ungültiger Order-Index.", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
             var dlg = new OpenFileDialog
             {
-                Title = "Order-Bild auswählen",
-                Filter = "PNG Dateien|*.png"
+                Title = $"Order {orderIndex} auswählen",
+                Filter = "PNG Dateien|*.png;*.jpg;*.jpeg",
+                InitialDirectory = ordersDir
             };
 
             if (dlg.ShowDialog() == true)
             {
-                Dispatcher.Invoke(() =>
+                string filename = Path.GetFileName(dlg.FileName);
+
+                switch (orderIndex)
                 {
-                    string fileName = Path.GetFileNameWithoutExtension(dlg.FileName);
-                    string ext = Path.GetExtension(dlg.FileName);
-                    string destFile;
-                    int counter = 1;
+                    case 1: passenger.Order1 = filename; passenger.Order1ImagePath = dlg.FileName; break;
+                    case 2: passenger.Order2 = filename; passenger.Order2ImagePath = dlg.FileName; break;
+                    case 3: passenger.Order3 = filename; passenger.Order3ImagePath = dlg.FileName; break;
+                    case 4: passenger.Order4 = filename; passenger.Order4ImagePath = dlg.FileName; break;
+                }
 
-                    do
-                    {
-                        string newName = counter == 1 ? $"{fileName}{ext}" : $"{fileName}_{counter}{ext}";
-                        destFile = Path.Combine(ordersDir, newName);
-                        counter++;
-                    } while (File.Exists(destFile));
-
-                    File.Copy(dlg.FileName, destFile, true);
-
-                    passenger.Orders[orderIndex] = Path.GetFileName(destFile);
-                    passenger.OrderImagePaths[orderIndex] = destFile;
-
-                    SavePassengerData();
-                }, DispatcherPriority.Background);
+                SavePassengerData();
             }
-        }
-
-        private void BtnSave_Click(object sender, RoutedEventArgs e)
-        {
-            SavePassengerData();
-            SaveAvatarDb();
-            MessageBox.Show("PassengerData und Avatar-DB gespeichert!", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void SavePassengerData()
         {
-            using var writer = new StreamWriter(passengerDataPath);
-            writer.WriteLine("Name,Sitzplatz,Avatar,Order1,Order2,Order3,Order4");
-
-            foreach (var p in passengers)
+            try
             {
-                writer.WriteLine($"{p.Name},{p.Sitzplatz},{p.Avatar},{string.Join(",", p.Orders)}");
+                using var writer = new StreamWriter(passengerDataPath);
+                writer.WriteLine("Name,Sitzplatz,Avatar,Order1,Order2,Order3,Order4");
+
+                foreach (var p in passengers)
+                {
+                    writer.WriteLine($"{p.Name},{p.Sitzplatz},{p.Avatar},{p.Order1},{p.Order2},{p.Order3},{p.Order4}");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Fehler beim Speichern der PassengerData: " + ex.Message);
             }
         }
 
         private void SaveAvatarDb()
         {
-            using var writer = new StreamWriter(avatarDbPath);
-            writer.WriteLine("Name,Avatar");
-
-            foreach (var p in passengers)
+            try
             {
-                writer.WriteLine($"{p.Name},{p.Avatar}");
-            }
-        }
+                using var writer = new StreamWriter(avatarDbPath);
+                writer.WriteLine("Name,Avatar");
 
-        public class PassengerViewModel
-        {
-            public string Name { get; set; }
-            public string Sitzplatz { get; set; }
-
-            private string avatar;
-            public string Avatar
-            {
-                get => avatar;
-                set
+                foreach (var p in passengers)
                 {
-                    avatar = value;
-                    AvatarImagePath = Path.Combine(ConfigService.Current.Paths.Avatars, value);
+                    writer.WriteLine($"{p.Name},{p.Avatar}");
                 }
             }
-
-            public string AvatarImagePath { get; set; }
-
-            public string[] Orders { get; set; } = new string[4];
-
-            public string[] OrderImagePaths { get; set; } = new string[4];
+            catch (Exception ex)
+            {
+                MessageBox.Show("Fehler beim Speichern der Avatar-DB: " + ex.Message);
+            }
         }
     }
 }
