@@ -81,6 +81,14 @@ namespace PassengerWPF
             };
             avatarWin.Show();
         }
+        private void BtnLiveBoarding_Click(object sender, RoutedEventArgs e)
+        {
+            var win = new LiveBoardingWindow
+            {
+                Owner = this
+            };
+            win.Show();
+        }
 
         private void BtnClearPassengerData_Click(object sender, RoutedEventArgs e)
         {

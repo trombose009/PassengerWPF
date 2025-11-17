@@ -16,6 +16,7 @@ namespace PassengerWPF
         public string Orders { get; set; } = "";
         public string Stewardess { get; set; } = "";
         public string Cabin { get; set; } = "";
+        public string BGImage { get; set; } = "";
     }
 
     public class CsvSection

@@ -16,10 +16,11 @@ namespace PassengerWPF
             TxtOrders.Text = ConfigService.Current.Paths.Orders;
             TxtStewardess.Text = ConfigService.Current.Paths.Stewardess;
             TxtCabin.Text = ConfigService.Current.Paths.Cabin;
-            TxtCateringCsv.Text = ConfigService.Current.Csv.PassengerData; // geändert
+            TxtCateringCsv.Text = ConfigService.Current.Csv.PassengerData;
             TxtAvatarDbCsv.Text = ConfigService.Current.Csv.AvatarDb;
             TxtOrdersCsv.Text = ConfigService.Current.Csv.Orders;
-            TxtActualFlightCsv.Text = ConfigService.Current.Csv.ActualFlight; // neu
+            TxtActualFlightCsv.Text = ConfigService.Current.Csv.ActualFlight;
+            TxtBgImage.Text = ConfigService.Current.Paths.BGImage;
         }
 
         private void BrowseFolder(TextBox target)
@@ -34,11 +35,11 @@ namespace PassengerWPF
                 target.Text = dlg.SelectedPath;
         }
 
-        private void BrowseFile(TextBox target)
+        private void BrowseFile(TextBox target, string filter = "Alle Dateien|*.*")
         {
             var dlg = new OpenFileDialog
             {
-                Filter = "CSV Dateien|*.csv|Alle Dateien|*.*"
+                Filter = filter
             };
             if (dlg.ShowDialog() == true)
                 target.Text = dlg.FileName;
@@ -49,11 +50,13 @@ namespace PassengerWPF
         private void BrowseOrders_Click(object sender, RoutedEventArgs e) => BrowseFolder(TxtOrders);
         private void BrowseStewardess_Click(object sender, RoutedEventArgs e) => BrowseFolder(TxtStewardess);
         private void BrowseCabin_Click(object sender, RoutedEventArgs e) => BrowseFolder(TxtCabin);
-        private void BrowseCateringCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtCateringCsv);
-        private void BrowseAvatarDbCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtAvatarDbCsv);
-        private void BrowseOrdersCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtOrdersCsv);
 
-        private void BrowseActualFlightCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtActualFlightCsv); // neu
+        private void BrowseCateringCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtCateringCsv, "CSV Dateien|*.csv|Alle Dateien|*.*");
+        private void BrowseAvatarDbCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtAvatarDbCsv, "CSV Dateien|*.csv|Alle Dateien|*.*");
+        private void BrowseOrdersCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtOrdersCsv, "CSV Dateien|*.csv|Alle Dateien|*.*");
+        private void BrowseActualFlightCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtActualFlightCsv, "CSV Dateien|*.csv|Alle Dateien|*.*");
+
+        private void BrowseBgImage_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtBgImage, "PNG Bilder|*.png|Alle Dateien|*.*");
 
         // --- Speichern ---
         private void BtnSave_Click(object sender, RoutedEventArgs e)
@@ -62,10 +65,11 @@ namespace PassengerWPF
             ConfigService.Current.Paths.Orders = TxtOrders.Text;
             ConfigService.Current.Paths.Stewardess = TxtStewardess.Text;
             ConfigService.Current.Paths.Cabin = TxtCabin.Text;
-            ConfigService.Current.Csv.PassengerData = TxtCateringCsv.Text; // geändert
+            ConfigService.Current.Csv.PassengerData = TxtCateringCsv.Text;
             ConfigService.Current.Csv.AvatarDb = TxtAvatarDbCsv.Text;
             ConfigService.Current.Csv.Orders = TxtOrdersCsv.Text;
-            ConfigService.Current.Csv.ActualFlight = TxtActualFlightCsv.Text; // neu
+            ConfigService.Current.Csv.ActualFlight = TxtActualFlightCsv.Text;
+            ConfigService.Current.Paths.BGImage = TxtBgImage.Text;
 
             ConfigService.Save();
 
