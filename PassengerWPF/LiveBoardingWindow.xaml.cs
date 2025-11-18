@@ -1,261 +1,195 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Media;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Forms.Integration;
-using WinForms = System.Windows.Forms;
+using System.Windows.Media;
+using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace PassengerWPF
 {
     public partial class LiveBoardingWindow : Window
     {
-        // --- Pfade ---
-        private string csvPath;
-        private string countCsvPath;
+        private readonly Dictionary<string, Rectangle> seatMarkers = new();
+        private DispatcherTimer timer;
+
+        // Sitz-Koordinaten relativ (0..1)
+        private readonly Dictionary<string, (double x, double y)> seatCoordinates = new()
+        {
+            { "1A", (0.322, 0.20) }, { "1B", (0.38, 0.20) }, { "1C", (0.44, 0.20) },
+            { "1D", (0.54, 0.20) }, { "1E", (0.592, 0.20) }, { "1F", (0.645, 0.20) },
+            { "2A", (0.322, 0.225) }, { "2B", (0.38, 0.225) }, { "2C", (0.44, 0.225) },
+            { "2D", (0.54, 0.225) }, { "2E", (0.592, 0.225) }, { "2F", (0.645, 0.225) },
+            // Restliche Reihen 3–17 folgen...
+        };
+
+        private string seatmapPath;
         private string actualFlightPath;
         private string boardingSoundPath;
-        private string outputImagePath;
-        private string bgImagePath;
 
-        // --- UI / Daten ---
-        private Dictionary<string, WinForms.Button> seatButtons = new();
-        private List<WinForms.Label> boardingListLabels = new();
-        private WinForms.Panel scrollPanel;
-        private WinForms.Panel listPanel;
-        private WinForms.PictureBox pictureBox;
-        private Bitmap bgImage;
-        private WinForms.Timer timer;
-        private WinForms.Panel statusLight;
-        private WinForms.Button toggleButton;
+        private string jsonPath => System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
 
         public LiveBoardingWindow()
         {
             InitializeComponent();
+            LoadConfig();
+            LoadSeatmap();
 
-            // --- Basisverzeichnis für Fallbacks ---
-            string basePath = Path.Combine(Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).FullName, "boarding");
+            // Marker erstellen
+            CreateSeatMarkers();
 
-            // --- Pfade aus Config laden ---
-            csvPath = ConfigService.Current.Csv.PassengerData ?? Path.Combine(basePath, "boarding.csv");
-            countCsvPath = Path.Combine(basePath, "boarding_count.csv");
-            actualFlightPath = ConfigService.Current.Csv.ActualFlight ?? Path.Combine(basePath, "actualflight.csv");
-            boardingSoundPath = ConfigService.Current.Paths.BoardingSound ?? Path.Combine(basePath, "bingbing.wav");
-            outputImagePath = Path.Combine(basePath, "boarding_render.png");
-            bgImagePath = ConfigService.Current.Paths.BGImage ?? Path.Combine(basePath, "bg.png");
+            // Marker positionieren, sobald das Bild geladen ist
+            SeatmapImage.Loaded += (s, e) => PositionSeatMarkers();
+            SeatmapImage.SizeChanged += (s, e) => PositionSeatMarkers();
 
-            SetupWinFormsHost();
-            SetupListPanel();
-            SetupControls();
-            UpdateBoardingListFromActualFlight();
+            LoadBoardingList();
+            InitTimer();
         }
 
-        private void SetupWinFormsHost()
+        private void LoadConfig()
         {
-            // Panel für Sitzplan
-            scrollPanel = new WinForms.Panel
+            if (!File.Exists(jsonPath)) return;
+
+            try
             {
-                Location = new System.Drawing.Point(130, 60),
-                Size = new System.Drawing.Size(400, 900),
-                AutoScroll = true,
-                BorderStyle = WinForms.BorderStyle.FixedSingle
-            };
-
-            // Hintergrundbild laden
-            if (!File.Exists(bgImagePath))
-            {
-                MessageBox.Show($"Hintergrundbild nicht gefunden:\n{bgImagePath}", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            bgImage = (Bitmap)Bitmap.FromFile(bgImagePath);
-
-            pictureBox = new WinForms.PictureBox
-            {
-                Image = bgImage,
-                SizeMode = WinForms.PictureBoxSizeMode.StretchImage, // Skaliert Bild auf Panelgröße
-                Location = new System.Drawing.Point(0, 0),
-                Size = scrollPanel.ClientSize // Passt PictureBox der Panelgröße an
-            };
-
-            scrollPanel.Controls.Add(pictureBox);
-
-            // Wenn das Panel die Größe ändert, PictureBox anpassen
-            scrollPanel.Resize += (s, e) => pictureBox.Size = scrollPanel.ClientSize;
-
-            // Buttons auf PictureBox platzieren
-            LoadSeats();
-
-            // WPF Host
-            var host = new WindowsFormsHost { Child = scrollPanel };
-            Grid.SetRow(host, 0);
-            MainGrid.Children.Add(host);
-        }
-
-        private void LoadSeats()
-        {
-            string[] seatsAll = { "A", "B", "C", "D", "E", "F" };
-            int totalRows = 17;
-            int seatWidth = 24, seatHeight = 27, xOffset = 128, yOffset = 305, colSpacing = 20, aisleSpacing = 30, rowSpacing = 36;
-            var smallFont = new System.Drawing.Font("Segoe UI", 6.5f);
-
-            for (int row = 1; row <= totalRows; row++)
-            {
-                for (int i = 0; i < seatsAll.Length; i++)
+                var config = JsonSerializer.Deserialize<BoardingConfig>(File.ReadAllText(jsonPath));
+                if (config != null)
                 {
-                    string seatLabel = $"{row}{seatsAll[i]}";
-                    var btn = new WinForms.Button
-                    {
-                        Text = seatLabel,
-                        Font = smallFont,
-                        Width = seatWidth,
-                        Height = seatHeight,
-                        UseVisualStyleBackColor = true,
-                        BackColor = row <= 5 ? System.Drawing.Color.LightBlue : System.Drawing.Color.LightGray,
-                        Parent = pictureBox // Buttons auf PictureBox platzieren
-                    };
-
-                    int x = xOffset + (i * colSpacing);
-                    if (i >= 3) x += aisleSpacing;
-                    int y = yOffset + ((row - 1) * rowSpacing);
-                    btn.Location = new System.Drawing.Point(x, y);
-
-                    seatButtons[seatLabel.ToUpper()] = btn;
-                    btn.BringToFront();
+                    seatmapPath = config.Paths?.BGImage;
+                    actualFlightPath = config.Csv?.ActualFlight;
+                    boardingSoundPath = config.Paths?.BoardingSound;
                 }
             }
-        }
-
-
-        
-
-        private void SetupListPanel()
-        {
-            listPanel = new WinForms.Panel
+            catch (Exception ex)
             {
-                Location = new System.Drawing.Point(5, 60),
-                Size = new System.Drawing.Size(120, 800),
-                AutoScroll = true,
-                BorderStyle = WinForms.BorderStyle.FixedSingle,
-                BackColor = System.Drawing.Color.FromArgb(179, 255, 255)
-            };
-
-            var host = new WindowsFormsHost { Child = listPanel };
-            Grid.SetRow(host, 0);
-            MainGrid.Children.Add(host);
-        }
-
-        private void SetupControls()
-        {
-            // Toggle Button
-            toggleButton = new WinForms.Button
-            {
-                Text = "Start",
-                Size = new System.Drawing.Size(80, 30),
-                Location = new System.Drawing.Point(10, 10)
-            };
-            toggleButton.Click += ToggleButton_Click;
-            scrollPanel.Controls.Add(toggleButton);
-
-            // Status Light
-            statusLight = new WinForms.Panel
-            {
-                Size = new System.Drawing.Size(20, 20),
-                Location = new System.Drawing.Point(385, 15),
-                BackColor = System.Drawing.Color.Gray
-            };
-            var gp = new System.Drawing.Drawing2D.GraphicsPath();
-            gp.AddEllipse(0, 0, 20, 20);
-            statusLight.Region = new System.Drawing.Region(gp);
-            scrollPanel.Controls.Add(statusLight);
-
-            // Timer
-            timer = new WinForms.Timer { Interval = 5000 };
-            timer.Tick += (s, e) => ProcessBoarding();
-        }
-
-        private void ToggleButton_Click(object sender, EventArgs e)
-        {
-            if (timer.Enabled)
-            {
-                timer.Stop();
-                toggleButton.Text = "Start";
-                statusLight.BackColor = System.Drawing.Color.Gray;
-            }
-            else
-            {
-                timer.Start();
-                toggleButton.Text = "Stop";
-                statusLight.BackColor = System.Drawing.Color.LimeGreen;
+                MessageBox.Show($"Fehler beim Laden der Konfigurationsdatei: {ex.Message}");
             }
         }
 
-        private void UpdateBoardingListFromActualFlight()
+        private void LoadSeatmap()
         {
-            foreach (var lbl in boardingListLabels)
+            if (!string.IsNullOrEmpty(seatmapPath) && File.Exists(seatmapPath))
             {
-                listPanel.Controls.Remove(lbl);
-                lbl.Dispose();
+                SeatmapImage.Source = new System.Windows.Media.Imaging.BitmapImage(new Uri(seatmapPath));
             }
-            boardingListLabels.Clear();
+        }
 
-            if (!File.Exists(actualFlightPath)) return;
-            var actualPassengers = ImportCsv(actualFlightPath);
-
-            int yPos = 5;
-            var font = new System.Drawing.Font("Segoe UI", 8);
-            foreach (var p in actualPassengers)
+        private void CreateSeatMarkers()
+        {
+            foreach (var kvp in seatCoordinates)
             {
-                if (string.IsNullOrWhiteSpace(p.Name) || string.IsNullOrWhiteSpace(p.Seat)) continue;
-
-                if (seatButtons.ContainsKey(p.Seat))
+                var seatMarker = new Rectangle
                 {
-                    var btn = seatButtons[p.Seat];
-                    btn.BackColor = System.Drawing.Color.LawnGreen;
-                    var tip = new WinForms.ToolTip();
-                    tip.SetToolTip(btn, p.Name);
-                    btn.BringToFront();
-                }
-
-                var label = new WinForms.Label
-                {
-                    Text = $"{p.Name} --> {p.Seat}",
-                    Font = font,
-                    AutoSize = true,
-                    Location = new System.Drawing.Point(5, yPos)
+                    Width = 12,
+                    Height = 15,
+                    Fill = System.Windows.Media.Brushes.LightGray,
+                    Stroke = System.Windows.Media.Brushes.DarkGray,
+                    StrokeThickness = 1,
+                    RadiusX = 3,
+                    RadiusY = 5,
+                    ToolTip = ""
                 };
-                listPanel.Controls.Add(label);
-                boardingListLabels.Add(label);
-                yPos += 20;
+
+                seatMarker.MouseEnter += (s, e) => seatMarker.Stroke = System.Windows.Media.Brushes.Yellow;
+                seatMarker.MouseLeave += (s, e) => seatMarker.Stroke = System.Windows.Media.Brushes.DarkGray;
+
+                SeatCanvas.Children.Add(seatMarker);
+                seatMarkers[kvp.Key] = seatMarker;
             }
         }
 
-        private void ProcessBoarding()
+        private void PositionSeatMarkers()
         {
-            PlaySound(boardingSoundPath); // z.B. beim Boarding
+            if (SeatmapImage.Source == null) return;
+
+            var bitmap = (System.Windows.Media.Imaging.BitmapSource)SeatmapImage.Source;
+            double canvasWidth = SeatCanvas.ActualWidth;
+            double canvasHeight = SeatCanvas.ActualHeight;
+
+            // Canvas muss reale Größe haben
+            if (canvasWidth <= 0 || canvasHeight <= 0) return;
+
+            double ratio = Math.Min(canvasWidth / bitmap.PixelWidth, canvasHeight / bitmap.PixelHeight);
+            double offsetX = (canvasWidth - bitmap.PixelWidth * ratio) / 2;
+            double offsetY = (canvasHeight - bitmap.PixelHeight * ratio) / 2;
+
+            foreach (var kvp in seatCoordinates)
+            {
+                if (!seatMarkers.TryGetValue(kvp.Key, out var rect)) continue;
+                var (relX, relY) = kvp.Value;
+
+                double x = offsetX + relX * bitmap.PixelWidth * ratio;
+                double y = offsetY + relY * bitmap.PixelHeight * ratio;
+
+                Canvas.SetLeft(rect, x);
+                Canvas.SetTop(rect, y);
+            }
         }
 
-        private List<(string Name, string Seat)> ImportCsv(string path)
+        private void LoadBoardingList()
         {
-            var list = new List<(string, string)>();
-            foreach (var line in File.ReadAllLines(path).Skip(1))
+            if (string.IsNullOrEmpty(actualFlightPath) || !File.Exists(actualFlightPath)) return;
+
+            BoardingListPanel.Children.Clear();
+
+            var lines = File.ReadAllLines(actualFlightPath).Skip(1);
+            foreach (var line in lines)
             {
                 var parts = line.Split(',');
-                if (parts.Length >= 2)
-                    list.Add((parts[0], parts[1].ToUpper()));
+                if (parts.Length < 2) continue;
+
+                string name = parts[0];
+                string seat = parts[1].ToUpper();
+
+                BoardingListPanel.Children.Add(new TextBlock
+                {
+                    Text = $"{name} → {seat}",
+                    Margin = new Thickness(5),
+                    Foreground = System.Windows.Media.Brushes.White,
+                    FontWeight = FontWeights.Bold
+                });
+
+                if (seatMarkers.ContainsKey(seat))
+                {
+                    seatMarkers[seat].Fill = System.Windows.Media.Brushes.LawnGreen;
+                    seatMarkers[seat].ToolTip = name;
+                }
             }
-            return list;
         }
 
-        private void PlaySound(string path)
+        private void InitTimer()
         {
-            if (!File.Exists(path)) return;
-            using var player = new SoundPlayer(path);
-            player.Load();
-            player.Play();
+            timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+            timer.Tick += (s, e) =>
+            {
+                if (!string.IsNullOrEmpty(boardingSoundPath) && File.Exists(boardingSoundPath))
+                {
+                    new SoundPlayer(boardingSoundPath).Play();
+                }
+            };
+            timer.Start();
         }
+    }
+
+    public class BoardingConfig
+    {
+        [JsonPropertyName("Paths")] public BoardingPaths Paths { get; set; }
+        [JsonPropertyName("Csv")] public BoardingCsv Csv { get; set; }
+    }
+
+    public class BoardingPaths
+    {
+        [JsonPropertyName("BGImage")] public string BGImage { get; set; }
+        [JsonPropertyName("BoardingSound")] public string BoardingSound { get; set; }
+    }
+
+    public class BoardingCsv
+    {
+        [JsonPropertyName("ActualFlight")] public string ActualFlight { get; set; }
     }
 }
