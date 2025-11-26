@@ -8,29 +8,54 @@
         MinHeight="960"
         Background="Black">
 
+    <Window.Resources>
+
+        <Style x:Key="SeatButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Background" Value="Green"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="White"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border CornerRadius="6"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+    </Window.Resources>
+
     <Grid Name="MainGrid">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="220"/>
-            <!-- Boardingliste links -->
             <ColumnDefinition Width="*"/>
-            <!-- Sitzplan rechts -->
         </Grid.ColumnDefinitions>
 
-        <!-- Boardingliste -->
         <Border Grid.Column="0" Background="#AA000000" Padding="10" BorderBrush="DarkGray" BorderThickness="1">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel Name="BoardingListPanel" />
+                <StackPanel Name="BoardingListPanel"/>
             </ScrollViewer>
         </Border>
 
-        <!-- Sitzplan -->
         <Grid Grid.Column="1" Background="Black">
             <Grid>
-                <Image Name="SeatmapImage" Stretch="Uniform" />
-                <Canvas Name="SeatCanvas" Background="Transparent"
+                <Image Name="SeatmapImage" Stretch="Uniform"/>
+                <Canvas Name="SeatCanvas"
+                        Background="Transparent"
                         Width="{Binding ActualWidth, ElementName=SeatmapImage}"
-                        Height="{Binding ActualHeight, ElementName=SeatmapImage}" />
+                        Height="{Binding ActualHeight, ElementName=SeatmapImage}"/>
             </Grid>
         </Grid>
+
     </Grid>
 </Window>
