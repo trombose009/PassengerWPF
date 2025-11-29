@@ -109,7 +109,8 @@ namespace PassengerWPF
         private void LoadAndPlacePassengers()
         {
             string csvPath = ConfigService.Current.Csv.PassengerData;
-            passengers = PassengerDataService.LoadPassengers(csvPath);
+            string avatarsPath = ConfigService.Current.Paths.Avatars; // Pfad für LoadPassengers
+            passengers = PassengerDataService.LoadPassengers(csvPath, avatarsPath);
 
             foreach (var passenger in passengers)
             {
@@ -124,7 +125,7 @@ namespace PassengerWPF
                 double y = baseRowY[row];
                 double size = avatarSize[row];
 
-                string imgPath = Path.Combine(ConfigService.Current.Paths.Avatars, passenger.AvatarFile);
+                string imgPath = Path.Combine(avatarsPath, passenger.AvatarFile);
                 if (!File.Exists(imgPath))
                     continue;
 
@@ -144,6 +145,7 @@ namespace PassengerWPF
                 CabinCanvas.Children.Add(img);
             }
         }
+
 
         // -----------------------------
         // ORDER ICONS
