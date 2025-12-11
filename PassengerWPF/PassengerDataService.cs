@@ -60,7 +60,7 @@ namespace PassengerWPF
                 // Avatar-Fallback
                 if (string.IsNullOrEmpty(p.AvatarFile))
                 {
-                    p.AvatarFile = Path.Combine(avatarsPath, "dummy.png");
+                    p.AvatarFile = Path.Combine(avatarsPath, "default.png");
                     changed = true;
                 }
 

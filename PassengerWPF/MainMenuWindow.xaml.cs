@@ -90,7 +90,7 @@ namespace PassengerWPF
 
             if (result == MessageBoxResult.Yes)
             {
-                File.WriteAllText(path, "Name,Sitzplatz,Avatar,orders1,orders2,orders3,orders4");
+                File.WriteAllText(path, "Name,Sitzplatz,Avatar,orders1,orders2,orders3,orders4\r\n");
                 UpdatePassengerDataTimestamp();
 
                 MessageBox.Show("PassengerData-Datei wurde geleert.", "Info",

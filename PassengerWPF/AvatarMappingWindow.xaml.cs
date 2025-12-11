@@ -137,16 +137,89 @@ namespace PassengerWPF
             }
         }
 
+        private void SaveAvatarDb()
+        {
+            try
+            {
+                // 1. Alte DB laden
+                var avatarDb = new Dictionary<string, string>();
+                if (File.Exists(avatarDbPath))
+                {
+                    foreach (var line in File.ReadAllLines(avatarDbPath).Skip(1))
+                    {
+                        var parts = line.Split(',');
+                        if (parts.Length >= 2)
+                            avatarDb[parts[0].Trim('"')] = parts[1].Trim('"');
+                    }
+                }
+
+                // 2. Aktuelle Passagiere updaten / hinzufügen
+                foreach (var p in passengers)
+                {
+                    avatarDb[p.Name] = p.Avatar; // überschreibt nur den aktuellen Passagier
+                }
+
+                // 3. Alles zurückschreiben
+                using var writer = new StreamWriter(avatarDbPath, false);
+                writer.WriteLine("Name,Avatar");
+                foreach (var kv in avatarDb)
+                {
+                    writer.WriteLine($"{kv.Key},{kv.Value}");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Fehler beim Speichern der Avatar-DB: " + ex.Message);
+            }
+        }
+
         private void SavePassengerData()
         {
             try
             {
-                using var writer = new StreamWriter(passengerDataPath);
-                writer.WriteLine("Name,Sitzplatz,Avatar,Order1,Order2,Order3,Order4");
+                if (!File.Exists(passengerDataPath))
+                {
+                    MessageBox.Show("PassengerData-Datei existiert nicht.");
+                    return;
+                }
 
+                // 1. Alte CSV einlesen
+                var lines = File.ReadAllLines(passengerDataPath).ToList();
+                if (lines.Count == 0) return;
+
+                // 2. Header behalten
+                var header = lines[0];
+                var existingData = lines.Skip(1)
+                                        .Select(l => l.Split(','))
+                                        .ToDictionary(parts => parts[0].Trim('"')); // Name als Key
+
+                // 3. Aktuelle Passagiere updaten (nur Avatar)
                 foreach (var p in passengers)
                 {
-                    writer.WriteLine($"{p.Name},{p.Sitzplatz},{p.Avatar},{p.Order1},{p.Order2},{p.Order3},{p.Order4}");
+                    if (existingData.ContainsKey(p.Name))
+                    {
+                        var parts = existingData[p.Name];
+                        if (parts.Length >= 3)
+                            parts[2] = p.Avatar; // Avatar-Spalte aktualisieren
+                        existingData[p.Name] = parts;
+                    }
+                    else
+                    {
+                        // neuer Passagier
+                        existingData[p.Name] = new string[]
+                        {
+                    p.Name, p.Sitzplatz ?? "", p.Avatar ?? "",
+                    p.Order1 ?? "", p.Order2 ?? "", p.Order3 ?? "", p.Order4 ?? ""
+                        };
+                    }
+                }
+
+                // 4. Zurückschreiben
+                using var writer = new StreamWriter(passengerDataPath, false);
+                writer.WriteLine(header);
+                foreach (var parts in existingData.Values)
+                {
+                    writer.WriteLine(string.Join(",", parts));
                 }
             }
             catch (Exception ex)
@@ -155,22 +228,5 @@ namespace PassengerWPF
             }
         }
 
-        private void SaveAvatarDb()
-        {
-            try
-            {
-                using var writer = new StreamWriter(avatarDbPath);
-                writer.WriteLine("Name,Avatar");
-
-                foreach (var p in passengers)
-                {
-                    writer.WriteLine($"{p.Name},{p.Avatar}");
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Fehler beim Speichern der Avatar-DB: " + ex.Message);
-            }
-        }
     }
 }
