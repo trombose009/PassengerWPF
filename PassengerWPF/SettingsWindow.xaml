@@ -76,10 +76,6 @@
         <TextBox x:Name="TxtOrdersCsv" Grid.Row="6" Grid.Column="1" Margin="5" Height="25"/>
         <Button Content="..." Grid.Row="6" Grid.Column="2" Width="30" Click="BrowseOrdersCsv_Click"/>
 
-        <!-- Actual Flight CSV -->
-        <TextBlock Text="Actual Flight CSV:" Grid.Row="7" Grid.Column="0" VerticalAlignment="Center" Margin="0,5"/>
-        <TextBox x:Name="TxtActualFlightCsv" Grid.Row="7" Grid.Column="1" Margin="5" Height="25"/>
-        <Button Content="..." Grid.Row="7" Grid.Column="2" Width="30" Click="BrowseActualFlightCsv_Click"/>
 
         <!-- BG Image -->
         <TextBlock Text="Hintergrundbild (bg.png):" Grid.Row="8" Grid.Column="0" VerticalAlignment="Center" Margin="0,5"/>

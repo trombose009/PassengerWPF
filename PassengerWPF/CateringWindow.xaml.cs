@@ -109,8 +109,19 @@ namespace PassengerWPF
         private void LoadAndPlacePassengers()
         {
             string csvPath = ConfigService.Current.Csv.PassengerData;
-            string avatarsPath = ConfigService.Current.Paths.Avatars; // Pfad für LoadPassengers
-            passengers = PassengerDataService.LoadPassengers(csvPath, avatarsPath);
+            string avatarsPath = ConfigService.Current.Paths.Avatars;
+
+            // Alle Sitzplätze anhand seatPositions generieren
+            var allSeats = seatPositions
+                .SelectMany(row =>
+                    row.Value.Keys.Select(letter => row.Key + letter)
+                )
+                .ToList();
+
+            passengers = PassengerDataService.LoadPassengers(csvPath, avatarsPath, allSeats);
+
+            // Tracking belegter Sitzplätze für die Anzeige
+            var takenSeats = new HashSet<string>();
 
             foreach (var passenger in passengers)
             {
@@ -118,8 +129,31 @@ namespace PassengerWPF
                     continue;
 
                 var (row, seatLetter) = GetRowAndSeatLetter(passenger.Sitzplatz);
+
+                // Wenn Sitz in Front nicht existiert, einen freien Sitz wählen
+                if (row == "front" && !seatPositions[row].ContainsKey(seatLetter))
+                {
+                    var freeSeats = seatPositions[row].Keys.Except(takenSeats.Select(s => s[5..])).ToList();
+                    if (freeSeats.Count > 0)
+                    {
+                        seatLetter = freeSeats.First(); // erster freier Sitz
+                    }
+                }
+
+                // Prüfen, ob der Sitz existiert
                 if (!seatPositions.ContainsKey(row) || !seatPositions[row].ContainsKey(seatLetter))
                     continue;
+
+                string seatKey = row + seatLetter;
+                if (takenSeats.Contains(seatKey)) // falls bereits besetzt
+                {
+                    // Freien Sitz suchen
+                    var freeSeats = seatPositions[row].Keys.Except(takenSeats.Select(s => s[5..])).ToList();
+                    if (freeSeats.Count > 0)
+                        seatLetter = freeSeats.First();
+                    seatKey = row + seatLetter;
+                }
+                takenSeats.Add(seatKey);
 
                 double x = seatPositions[row][seatLetter];
                 double y = baseRowY[row];
@@ -133,8 +167,8 @@ namespace PassengerWPF
                 {
                     Width = size,
                     Height = size,
-                    Source = new BitmapImage(new Uri(imgPath, UriKind.Absolute)),
-                    Tag = "avatar_passenger",
+                    Source = new BitmapImage(new Uri(imgPath, UriKind.Absolute)) { CacheOption = BitmapCacheOption.OnLoad },
+                    Tag = $"avatar_passenger_{passenger.Name}", // eindeutiges Tag
                     ToolTip = $"{passenger.Name}\nSitzplatz: {passenger.Sitzplatz}"
                 };
 
@@ -146,18 +180,13 @@ namespace PassengerWPF
             }
         }
 
-
-        // -----------------------------
-        // ORDER ICONS
-        // -----------------------------
         private void ShowOrderIconsFor(Passenger passenger)
         {
             if (passenger == null) return;
 
             var avatarImg = CabinCanvas.Children
                 .OfType<Image>()
-                .FirstOrDefault(img => img.Tag?.ToString() == "avatar_passenger" &&
-                                       img.ToolTip?.ToString().StartsWith(passenger.Name) == true);
+                .FirstOrDefault(img => img.Tag?.ToString() == $"avatar_passenger_{passenger.Name}");
 
             if (avatarImg == null) return;
 
@@ -270,24 +299,25 @@ namespace PassengerWPF
 
                 await MoveStewardessToGangY(rowY, row);
 
-                var leftPassenger = CabinCanvas.Children.OfType<Image>()
-                    .Where(img => img.Tag?.ToString() == "avatar_passenger")
-                    .Where(img => Math.Abs(Canvas.GetTop(img) - baseRowY[row]) < 1)
+                var passengersInRow = passengers
+                    .Where(p => GetRowAndSeatLetter(p.Sitzplatz).Item1 == row)
+                    .Where(p => !string.IsNullOrWhiteSpace(p.Order1) || !string.IsNullOrWhiteSpace(p.Order2) || !string.IsNullOrWhiteSpace(p.Order3) || !string.IsNullOrWhiteSpace(p.Order4))
+                    .ToList();
+
+                // Sortiere nach X-Position
+                var passengerImages = passengersInRow
+                    .Select(p => CabinCanvas.Children.OfType<Image>()
+                        .First(img => img.Tag?.ToString() == $"avatar_passenger_{p.Name}"))
                     .OrderBy(img => Canvas.GetLeft(img))
-                    .FirstOrDefault();
+                    .ToList();
 
-                var rightPassenger = CabinCanvas.Children.OfType<Image>()
-                    .Where(img => img.Tag?.ToString() == "avatar_passenger")
-                    .Where(img => Math.Abs(Canvas.GetTop(img) - baseRowY[row]) < 1)
-                    .OrderByDescending(img => Canvas.GetLeft(img))
-                    .FirstOrDefault();
-
-                if (leftPassenger != null)
-                    await StewardessServePassenger(leftPassenger, true, row);
-
-                if (rightPassenger != null)
-                    await StewardessServePassenger(rightPassenger, false, row);
+                foreach (var passengerImg in passengerImages)
+                {
+                    var p = passengers.First(px => px.Name == ((string)passengerImg.Tag).Replace("avatar_passenger_", ""));
+                    await StewardessServePassenger(passengerImg, true, row); // links/rechts kann man später noch bestimmen
+                }
             }
+
 
             await MoveStewardessToGangY(700, ""); // zurück zum Ausgang
             StartServiceButton.IsEnabled = true;

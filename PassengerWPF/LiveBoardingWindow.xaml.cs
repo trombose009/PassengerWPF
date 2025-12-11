@@ -19,9 +19,10 @@ namespace PassengerWPF
         private readonly Dictionary<string, Rectangle> seatMarkers = new();
         private DispatcherTimer timer;
 
-        // Sitz-Koordinaten relativ (0..1)
-        private readonly Dictionary<string, (double x, double y)> seatCoordinates = new()
- {
+
+    // Sitz-Koordinaten (relativ)
+    private readonly Dictionary<string, (double x, double y)> seatCoordinates = new()
+        {
             { "1A", (0.350, 0.208) }, { "1B", (0.408, 0.208) }, { "1C", (0.468, 0.208) },
             { "1D", (0.568, 0.208) }, { "1E", (0.620, 0.208) }, { "1F", (0.673, 0.208) },
             { "2A", (0.350, 0.233) }, { "2B", (0.408, 0.233) }, { "2C", (0.468, 0.233) },
@@ -56,16 +57,16 @@ namespace PassengerWPF
             { "16D", (0.568, 0.569) }, { "16E", (0.620, 0.569) }, { "16F", (0.673, 0.569) },
             { "17A", (0.350, 0.593) }, { "17B", (0.408, 0.593) }, { "17C", (0.468, 0.593) },
             { "17D", (0.568, 0.593) }, { "17E", (0.620, 0.593) }, { "17F", (0.673, 0.593) },
-               };
+        };
 
         private string seatmapPath;
-        private string actualFlightPath;
+        private string passengerDataPath;
         private string boardingSoundPath;
         private string avatarsPath;
+
         private string jsonPath => IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
 
         public ObservableCollection<PassengerViewModel> Passengers { get; set; } = new();
-
         private Queue<Passenger> initialQueue;
         private bool initialDone = false;
         private List<Passenger> lastSnapshot = new();
@@ -82,36 +83,37 @@ namespace PassengerWPF
             SeatmapImage.Loaded += (s, e) => PositionSeatMarkers();
             SeatmapImage.SizeChanged += (s, e) => PositionSeatMarkers();
 
-            // Initiale Passagiere laden
-            lastSnapshot = PassengerDataService.LoadPassengers(actualFlightPath, avatarsPath);
+            // Alle Sitzplätze als Liste übergeben
+            var allSeats = seatCoordinates.Keys.ToList();
+
+            // CSV laden und fehlende Sitzplätze automatisch vergeben
+            lastSnapshot = PassengerDataService.LoadPassengers(passengerDataPath, avatarsPath, allSeats);
             initialQueue = new Queue<Passenger>(lastSnapshot);
 
-            // Timer starten
             timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
             timer.Tick += Timer_Tick;
             timer.Start();
 
-            // Passagierliste initial anzeigen
             UpdatePassengerListUI();
         }
 
         private void LoadConfig()
         {
             if (!File.Exists(jsonPath)) return;
+
             try
             {
                 var config = System.Text.Json.JsonSerializer.Deserialize<BoardingConfig>(File.ReadAllText(jsonPath));
-                if (config != null)
-                {
-                    seatmapPath = config.Paths?.BGImage;
-                    boardingSoundPath = config.Paths?.BoardingSound;
-                    avatarsPath = config.Paths?.Avatars;
-                    actualFlightPath = config.Csv?.ActualFlight;
-                }
+
+                seatmapPath = config.Paths?.BGImage;
+                boardingSoundPath = config.Paths?.BoardingSound;
+                avatarsPath = config.Paths?.Avatars;
+
+                passengerDataPath = config.Csv?.PassengerData;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Fehler beim Laden der Konfigurationsdatei: {ex.Message}");
+                MessageBox.Show("Fehler in config.json: " + ex.Message);
             }
         }
 
@@ -139,9 +141,6 @@ namespace PassengerWPF
                     ToolTip = kvp.Key
                 };
 
-                seatMarker.MouseEnter += (s, e) => seatMarker.Stroke = Brushes.Yellow;
-                seatMarker.MouseLeave += (s, e) => seatMarker.Stroke = Brushes.DarkGray;
-
                 SeatCanvas.Children.Add(seatMarker);
                 seatMarkers[kvp.Key] = seatMarker;
             }
@@ -157,20 +156,17 @@ namespace PassengerWPF
 
             if (canvasWidth <= 0 || canvasHeight <= 0) return;
 
-            // Skalierungsfaktor für Uniform
             double ratio = Math.Min(canvasWidth / bitmap.PixelWidth, canvasHeight / bitmap.PixelHeight);
-
-            // Offset, weil Bild zentriert wird
             double offsetX = (canvasWidth - bitmap.PixelWidth * ratio) / 2;
             double offsetY = (canvasHeight - bitmap.PixelHeight * ratio) / 2;
 
-            // FIX: zusätzlichen Verschiebungs-Offset
-            double shiftX = -7; // nach links
-            double shiftY = -6; // nach oben
+            double shiftX = -7;
+            double shiftY = -6;
 
             foreach (var kvp in seatCoordinates)
             {
                 if (!seatMarkers.TryGetValue(kvp.Key, out var rect)) continue;
+
                 var (relX, relY) = kvp.Value;
 
                 double x = offsetX + relX * bitmap.PixelWidth * ratio + shiftX;
@@ -178,14 +174,12 @@ namespace PassengerWPF
 
                 Canvas.SetLeft(rect, x);
                 Canvas.SetTop(rect, y);
-
-                rect.Width = 12;
-                rect.Height = 15;
             }
         }
 
-
-
+        // ----------------------------------------------------------------------
+        // TIMER + UPDATES
+        // ----------------------------------------------------------------------
         private void Timer_Tick(object sender, EventArgs e)
         {
             if (!initialDone)
@@ -199,11 +193,14 @@ namespace PassengerWPF
                 {
                     initialDone = true;
                 }
+
                 UpdatePassengerListUI();
                 return;
             }
 
-            var nowList = PassengerDataService.LoadPassengers(actualFlightPath, avatarsPath);
+            // CSV erneut laden und fehlende Sitzplätze automatisch vergeben
+            var allSeats = seatCoordinates.Keys.ToList();
+            var nowList = PassengerDataService.LoadPassengers(passengerDataPath, avatarsPath, allSeats);
 
             var newOnes = nowList
                 .Where(p => !lastSnapshot.Any(x => x.Name == p.Name && x.Sitzplatz == p.Sitzplatz))
@@ -221,12 +218,6 @@ namespace PassengerWPF
 
         private void AddPassengerToUI(Passenger p)
         {
-            if (string.IsNullOrEmpty(p.AvatarFile)) p.AvatarFile = "default.png";
-            if (string.IsNullOrEmpty(p.Order1)) p.Order1 = "placeholder.png";
-            if (string.IsNullOrEmpty(p.Order2)) p.Order2 = "placeholder.png";
-            if (string.IsNullOrEmpty(p.Order3)) p.Order3 = "placeholder.png";
-            if (string.IsNullOrEmpty(p.Order4)) p.Order4 = "placeholder.png";
-
             try
             {
                 if (!string.IsNullOrEmpty(boardingSoundPath) && File.Exists(boardingSoundPath))
@@ -234,13 +225,13 @@ namespace PassengerWPF
             }
             catch { }
 
-            if (seatMarkers.ContainsKey(p.Sitzplatz))
+            if (!string.IsNullOrEmpty(p.Sitzplatz) && seatMarkers.ContainsKey(p.Sitzplatz))
             {
                 seatMarkers[p.Sitzplatz].Fill = Brushes.LawnGreen;
                 seatMarkers[p.Sitzplatz].ToolTip = p.Name;
             }
 
-            var vm = new PassengerViewModel
+            Passengers.Add(new PassengerViewModel
             {
                 Name = p.Name,
                 Sitzplatz = p.Sitzplatz,
@@ -249,14 +240,13 @@ namespace PassengerWPF
                 Order2 = p.Order2,
                 Order3 = p.Order3,
                 Order4 = p.Order4
-            };
-
-            Passengers.Add(vm);
+            });
         }
 
         private void UpdatePassengerListUI()
         {
             BoardingListPanel.Children.Clear();
+
             foreach (var p in Passengers)
             {
                 var tb = new TextBlock
@@ -265,6 +255,7 @@ namespace PassengerWPF
                     Foreground = Brushes.White,
                     Margin = new Thickness(2, 1, 2, 1)
                 };
+
                 BoardingListPanel.Children.Add(tb);
             }
         }
@@ -285,6 +276,8 @@ namespace PassengerWPF
 
     public class BoardingCsv
     {
-        public string ActualFlight { get; set; }
+        public string PassengerData { get; set; }
     }
+
+
 }

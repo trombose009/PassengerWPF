@@ -19,7 +19,6 @@ namespace PassengerWPF
             TxtCateringCsv.Text = ConfigService.Current.Csv.PassengerData;
             TxtAvatarDbCsv.Text = ConfigService.Current.Csv.AvatarDb;
             TxtOrdersCsv.Text = ConfigService.Current.Csv.Orders;
-            TxtActualFlightCsv.Text = ConfigService.Current.Csv.ActualFlight;
             TxtBgImage.Text = ConfigService.Current.Paths.BGImage;
             TxtBoardingSound.Text = ConfigService.Current.Paths.BoardingSound;
             TxtCabinMusic.Text = ConfigService.Current.Paths.CabinMusic;
@@ -56,7 +55,6 @@ namespace PassengerWPF
         private void BrowseCateringCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtCateringCsv, "CSV Dateien|*.csv|Alle Dateien|*.*");
         private void BrowseAvatarDbCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtAvatarDbCsv, "CSV Dateien|*.csv|Alle Dateien|*.*");
         private void BrowseOrdersCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtOrdersCsv, "CSV Dateien|*.csv|Alle Dateien|*.*");
-        private void BrowseActualFlightCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtActualFlightCsv, "CSV Dateien|*.csv|Alle Dateien|*.*");
         private void BrowseBoardingSound_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtBoardingSound);
         private void BrowseCabinMusic_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtCabinMusic);
         private void BrowseBgImage_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtBgImage, "PNG Bilder|*.png|Alle Dateien|*.*");
@@ -71,7 +69,6 @@ namespace PassengerWPF
             ConfigService.Current.Csv.PassengerData = TxtCateringCsv.Text;
             ConfigService.Current.Csv.AvatarDb = TxtAvatarDbCsv.Text;
             ConfigService.Current.Csv.Orders = TxtOrdersCsv.Text;
-            ConfigService.Current.Csv.ActualFlight = TxtActualFlightCsv.Text;
             ConfigService.Current.Paths.BGImage = TxtBgImage.Text;
             ConfigService.Current.Paths.BoardingSound = TxtBoardingSound.Text;
             ConfigService.Current.Paths.CabinMusic = TxtCabinMusic.Text;
