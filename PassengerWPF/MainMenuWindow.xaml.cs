@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Windows;
 
 namespace PassengerWPF
@@ -60,6 +61,11 @@ namespace PassengerWPF
             // Falls Pfade geändert wurden: sofort aktualisieren
             UpdatePassengerDataTimestamp();
         }
+        private void BtnFrequentFlyer_Click(object sender, RoutedEventArgs e)
+        {
+            var win = new FrequentFlyerWindow { Owner = this };
+            win.Show();
+        }
 
         private void BtnAvatarMapping_Click(object sender, RoutedEventArgs e)
         {
@@ -90,13 +96,20 @@ namespace PassengerWPF
 
             if (result == MessageBoxResult.Yes)
             {
+                // Neue FlightID generieren
+                string flightId = Guid.NewGuid().ToString();
+                ConfigService.Current.Csv.CurrentFlightId = flightId;
+                ConfigService.Save();
+
+                // PassengerData leeren
                 File.WriteAllText(path, "Name,Sitzplatz,Avatar,orders1,orders2,orders3,orders4\r\n");
                 UpdatePassengerDataTimestamp();
 
-                MessageBox.Show("PassengerData-Datei wurde geleert.", "Info",
+                MessageBox.Show("PassengerData-Datei wurde geleert.\nNeue Flight-ID: " + flightId, "Info",
                                 MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
+
 
         #endregion
 

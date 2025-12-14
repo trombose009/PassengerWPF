@@ -76,24 +76,35 @@
         <TextBox x:Name="TxtOrdersCsv" Grid.Row="6" Grid.Column="1" Margin="5" Height="25"/>
         <Button Content="..." Grid.Row="6" Grid.Column="2" Width="30" Click="BrowseOrdersCsv_Click"/>
 
+        <!-- Vielfliegerdatenbank csv -->
+        <TextBlock Text="Vielfliegerdatenbank (*.csv):" Grid.Row="7" Grid.Column="0" VerticalAlignment="Center" Margin="0,5"/>
+        <TextBox x:Name="TxtBoardingCountCsv" Grid.Row="7" Grid.Column="1" Margin="5" Height="25"/>
+        <Button Content="..." Grid.Row="7" Grid.Column="2" Width="30" Click="BrowseBoardingCountCsv_Click"/>
 
-        <!-- BG Image -->
-        <TextBlock Text="Hintergrundbild (bg.png):" Grid.Row="8" Grid.Column="0" VerticalAlignment="Center" Margin="0,5"/>
-        <TextBox x:Name="TxtBgImage" Grid.Row="8" Grid.Column="1" Margin="5" Height="25"/>
-        <Button Content="..." Grid.Row="8" Grid.Column="2" Width="30" Click="BrowseBgImage_Click"/>
+        <!-- Hintergrundbild Vielflieger -->
+        <TextBlock Text="Hintergrundbild Vielflieger:" Grid.Row="8" Grid.Column="0" VerticalAlignment="Center" Margin="0,5"/>
+        <TextBox x:Name="TxtFrequentFlyerBg" Grid.Row="8" Grid.Column="1" Margin="5" Height="25"/>
+        <Button Content="..." Grid.Row="8" Grid.Column="2" Width="30" Click="BrowseFrequentFlyerBg_Click"/>
+
+        <!-- BG Image Cabin -->
+        <TextBlock Text="Hintergrundbild Kabine:" Grid.Row="9" Grid.Column="0" VerticalAlignment="Center" Margin="0,5"/>
+        <TextBox x:Name="TxtBgImage" Grid.Row="9" Grid.Column="1" Margin="5" Height="25"/>
+        <Button Content="..." Grid.Row="9" Grid.Column="2" Width="30" Click="BrowseBgImage_Click"/>
 
         <!-- Boarding Sound -->
-        <TextBlock Text="Sound Datei Boarding:" Grid.Row="9" Grid.Column="0" VerticalAlignment="Center" Margin="0,5"/>
-        <TextBox x:Name="TxtBoardingSound" Grid.Row="9" Grid.Column="1" Margin="5" Height="25"/>
-        <Button Content="..." Grid.Row="9" Grid.Column="2" Width="30" Click="BrowseBoardingSound_Click"/>
+        <TextBlock Text="Sound Datei Boarding:" Grid.Row="10" Grid.Column="0" VerticalAlignment="Center" Margin="0,5"/>
+        <TextBox x:Name="TxtBoardingSound" Grid.Row="10" Grid.Column="1" Margin="5" Height="25"/>
+        <Button Content="..." Grid.Row="10" Grid.Column="2" Width="30" Click="BrowseBoardingSound_Click"/>
 
         <!-- Hintergrundmusik Kabine -->
-        <TextBlock Text="Sound Datei Kabine (Hintergrundmusik):" Grid.Row="10" Grid.Column="0" VerticalAlignment="Center" Margin="0,5"/>
-        <TextBox x:Name="TxtCabinMusic" Grid.Row="10" Grid.Column="1" Margin="5" Height="25"/>
-        <Button Content="..." Grid.Row="10" Grid.Column="2" Width="30" Click="BrowseCabinMusic_Click"/>
+        <TextBlock Text="Sound Datei Kabine (Hintergrundmusik):" Grid.Row="11" Grid.Column="0" VerticalAlignment="Center" Margin="0,5"/>
+        <TextBox x:Name="TxtCabinMusic" Grid.Row="11" Grid.Column="1" Margin="5" Height="25"/>
+        <Button Content="..." Grid.Row="11" Grid.Column="2" Width="30" Click="BrowseCabinMusic_Click"/>
 
         <!-- Save Button -->
-        <Button Content="Speichern" Grid.Row="11" Grid.Column="0" Grid.ColumnSpan="3" Height="40" Margin="0,20,0,10"
-                HorizontalAlignment="Center" Width="120" VerticalAlignment="Bottom" Click="BtnSave_Click"/>
+        <Button Content="Speichern" Grid.Row="12" Grid.Column="0" Grid.ColumnSpan="3" Height="40" Margin="0,20,0,10"
+        HorizontalAlignment="Center" Width="120" VerticalAlignment="Bottom" Click="BtnSave_Click"/>
+
+
     </Grid>
 </Window>

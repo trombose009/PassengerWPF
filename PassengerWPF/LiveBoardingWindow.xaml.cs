@@ -227,7 +227,7 @@ namespace PassengerWPF
 
             if (!string.IsNullOrEmpty(p.Sitzplatz) && seatMarkers.ContainsKey(p.Sitzplatz))
             {
-                seatMarkers[p.Sitzplatz].Fill = Brushes.LawnGreen;
+                seatMarkers[p.Sitzplatz].Fill = new SolidColorBrush(Color.FromRgb(255, 0, 0)); // Leuchtendes Rot
                 seatMarkers[p.Sitzplatz].ToolTip = p.Name;
             }
 
@@ -251,7 +251,7 @@ namespace PassengerWPF
             {
                 var tb = new TextBlock
                 {
-                    Text = p.Name,
+                    Text = $"{p.Name}  ({p.Sitzplatz})", // Name + Sitzplatz
                     Foreground = Brushes.White,
                     Margin = new Thickness(2, 1, 2, 1)
                 };
@@ -259,6 +259,7 @@ namespace PassengerWPF
                 BoardingListPanel.Children.Add(tb);
             }
         }
+
     }
 
     public class BoardingConfig

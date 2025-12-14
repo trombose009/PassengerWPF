@@ -19,6 +19,7 @@ namespace PassengerWPF
         public string BGImage { get; set; } = "";
         public string BoardingSound { get; set; }
         public string CabinMusic { get; set; }
+        public string FrequentFlyerBg { get; set; } = "";
     }
 
     public class CsvSection
@@ -27,7 +28,10 @@ namespace PassengerWPF
         public string AvatarDb { get; set; } = "";
         public string ActualFlight { get; set; } = "";
         public string Orders { get; set; } = "";
+        public string BoardingCount { get; set; } = "";
+        public string CurrentFlightId { get; set; } = "";
     }
+
 
     public static class ConfigService
     {

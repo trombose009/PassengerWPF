@@ -8,6 +8,8 @@
         <Button Content="Einstellungen" Height="40" Click="BtnSettings_Click"/>
         <Button Content="Avatar Mapping" Height="40" Click="BtnAvatarMapping_Click"/>
         <Button Content="Live-Boarding" Height="40" Click="BtnLiveBoarding_Click"/>
+        <Button Content="✈ Vielflieger-Ranking" Height="40" Click="BtnFrequentFlyer_Click"/>
+
 
 
         <!-- Passenger-Daten Übersicht -->

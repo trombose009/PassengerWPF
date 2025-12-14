@@ -22,6 +22,9 @@ namespace PassengerWPF
             TxtBgImage.Text = ConfigService.Current.Paths.BGImage;
             TxtBoardingSound.Text = ConfigService.Current.Paths.BoardingSound;
             TxtCabinMusic.Text = ConfigService.Current.Paths.CabinMusic;
+            TxtBoardingCountCsv.Text = ConfigService.Current.Csv.BoardingCount;
+            TxtFrequentFlyerBg.Text = ConfigService.Current.Paths.FrequentFlyerBg;
+
         }
 
         private void BrowseFolder(TextBox target)
@@ -58,6 +61,10 @@ namespace PassengerWPF
         private void BrowseBoardingSound_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtBoardingSound);
         private void BrowseCabinMusic_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtCabinMusic);
         private void BrowseBgImage_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtBgImage, "PNG Bilder|*.png|Alle Dateien|*.*");
+        private void BrowseBoardingCountCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtBoardingCountCsv, "CSV Dateien|*.csv|Alle Dateien|*.*");
+        private void BrowseFrequentFlyerBg_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtFrequentFlyerBg, "PNG Dateien|*.png|Alle Dateien|*.*");
+
+
 
         // --- Speichern ---
         private void BtnSave_Click(object sender, RoutedEventArgs e)
@@ -72,6 +79,8 @@ namespace PassengerWPF
             ConfigService.Current.Paths.BGImage = TxtBgImage.Text;
             ConfigService.Current.Paths.BoardingSound = TxtBoardingSound.Text;
             ConfigService.Current.Paths.CabinMusic = TxtCabinMusic.Text;
+            ConfigService.Current.Csv.BoardingCount = TxtBoardingCountCsv.Text;
+            ConfigService.Current.Paths.FrequentFlyerBg = TxtFrequentFlyerBg.Text;
             ConfigService.Save();
 
             MessageBox.Show("Einstellungen gespeichert.", "Fertig", MessageBoxButton.OK, MessageBoxImage.Information);
