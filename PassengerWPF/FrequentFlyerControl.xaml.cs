@@ -9,37 +9,28 @@ using System.Windows.Media.Imaging;
 
 namespace PassengerWPF
 {
-    public partial class FrequentFlyerWindow : Window
+    public partial class FrequentFlyerControl : UserControl
     {
-        private readonly string boardingCountFile;
-        private readonly string passengerDataFile;
+        private string boardingCountFile;
+        private string passengerDataFile;
 
-        // Set für Passagiere, die schon beim aktuellen Flug gezählt wurden
-        private readonly HashSet<string> alreadyProcessed = new();
-
-        public FrequentFlyerWindow()
+        public FrequentFlyerControl()
         {
             InitializeComponent();
 
-            // Hintergrundbild laden
+            boardingCountFile = ConfigService.Current.Csv.BoardingCount;
+            passengerDataFile = ConfigService.Current.Csv.PassengerData;
+
+            LoadBackground();
+        }
+
+        private void LoadBackground()
+        {
             string bgPath = ConfigService.Current.Paths.FrequentFlyerBg;
             if (File.Exists(bgPath))
             {
-                try
-                {
-                    var uri = new Uri(bgPath, UriKind.Absolute);
-                    BgImageControl.Source = new BitmapImage(uri);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Fehler beim Laden des Hintergrundbilds:\n{ex.Message}",
-                                    "Fehler", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
+                BgImageControl.Source = new BitmapImage(new Uri(bgPath, UriKind.Absolute));
             }
-
-            // CSV-Dateien
-            boardingCountFile = ConfigService.Current.Csv.BoardingCount;
-            passengerDataFile = ConfigService.Current.Csv.PassengerData;
         }
 
         private void BtnSync_Click(object sender, RoutedEventArgs e)
@@ -60,7 +51,6 @@ namespace PassengerWPF
 
             try
             {
-                // Aktuelle FlightID
                 string currentFlightId = ConfigService.Current.Csv.CurrentFlightId;
 
                 // BoardingCount.csv einlesen
@@ -91,7 +81,6 @@ namespace PassengerWPF
                     {
                         if (boardingLines[passenger].LastFlightId != currentFlightId)
                         {
-                            // Count erhöhen
                             boardingLines[passenger] = new
                             {
                                 Count = boardingLines[passenger].Count + 1,
@@ -101,7 +90,6 @@ namespace PassengerWPF
                     }
                     else
                     {
-                        // Neu aufnehmen
                         boardingLines[passenger] = new { Count = 1, LastFlightId = currentFlightId };
                     }
                 }
@@ -116,38 +104,13 @@ namespace PassengerWPF
                     }
                 }
 
-
-                // GUI aktualisieren (wie bisher)
+                // GUI aktualisieren
                 int rowIndex = 0;
-                var header = new TextBlock
-                {
-                    Text = string.Format("{0,-30} {1,10}", "Name", "Flüge"),
-                    FontFamily = new FontFamily("Consolas"),
-                    FontWeight = FontWeights.Bold,
-                    FontSize = 12,
-                    Foreground = Brushes.LightGoldenrodYellow,
-                    Background = new SolidColorBrush(Color.FromArgb(160, 40, 30, 20)),
-                    Padding = new Thickness(5)
-                };
-                ItemsPanel.Children.Add(header);
-
-                var line = new TextBlock
-                {
-                    Text = new string('-', 42),
-                    FontFamily = new FontFamily("Consolas"),
-                    FontWeight = FontWeights.Bold,
-                    FontSize = 12,
-                    Foreground = Brushes.LightGoldenrodYellow,
-                    Background = new SolidColorBrush(Color.FromArgb(160, 40, 30, 20)),
-                    Padding = new Thickness(5)
-                };
-                ItemsPanel.Children.Add(line);
-
                 foreach (var entry in boardingLines.OrderByDescending(k => k.Value.Count).ThenBy(k => k.Key))
                 {
                     var tb = new TextBlock
                     {
-                        Text = string.Format("{0,-30} {1,10}", entry.Key, entry.Value.Count),
+                        Text = $"{entry.Key,-30} {entry.Value.Count,10}",
                         FontFamily = new FontFamily("Consolas"),
                         FontSize = 12,
                         Foreground = Brushes.LightGoldenrodYellow,
@@ -167,6 +130,5 @@ namespace PassengerWPF
                                 "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
     }
 }

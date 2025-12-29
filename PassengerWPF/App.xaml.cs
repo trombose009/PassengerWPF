@@ -1,9 +1,8 @@
-﻿using PassengerWPF;
-using System.Windows; // WPF
+﻿using System.Windows;
 
 namespace PassengerWPF
 {
-    public partial class App : System.Windows.Application // <-- explizit WPF
+    public partial class App : Application
     {
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -11,11 +10,9 @@ namespace PassengerWPF
 
             ConfigService.Load();
 
-            var main = new MainMenuWindow();
-            Application.Current.MainWindow = main;
+            var main = new MainWindow();
+            Current.MainWindow = main;
             main.Show();
         }
-
-
     }
 }

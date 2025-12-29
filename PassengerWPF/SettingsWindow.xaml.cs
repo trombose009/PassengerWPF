@@ -21,7 +21,7 @@ namespace PassengerWPF
             TxtOrdersCsv.Text = ConfigService.Current.Csv.Orders;
             TxtBgImage.Text = ConfigService.Current.Paths.BGImage;
             TxtBoardingSound.Text = ConfigService.Current.Paths.BoardingSound;
-            TxtCabinMusic.Text = ConfigService.Current.Paths.CabinMusic;
+            TxtCateringMusic.Text = ConfigService.Current.Paths.CateringMusic;
             TxtBoardingCountCsv.Text = ConfigService.Current.Csv.BoardingCount;
             TxtFrequentFlyerBg.Text = ConfigService.Current.Paths.FrequentFlyerBg;
 
@@ -59,7 +59,7 @@ namespace PassengerWPF
         private void BrowseAvatarDbCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtAvatarDbCsv, "CSV Dateien|*.csv|Alle Dateien|*.*");
         private void BrowseOrdersCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtOrdersCsv, "CSV Dateien|*.csv|Alle Dateien|*.*");
         private void BrowseBoardingSound_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtBoardingSound);
-        private void BrowseCabinMusic_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtCabinMusic);
+        private void BrowseCateringMusic_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtCateringMusic);
         private void BrowseBgImage_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtBgImage, "PNG Bilder|*.png|Alle Dateien|*.*");
         private void BrowseBoardingCountCsv_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtBoardingCountCsv, "CSV Dateien|*.csv|Alle Dateien|*.*");
         private void BrowseFrequentFlyerBg_Click(object sender, RoutedEventArgs e) => BrowseFile(TxtFrequentFlyerBg, "PNG Dateien|*.png|Alle Dateien|*.*");
@@ -78,7 +78,7 @@ namespace PassengerWPF
             ConfigService.Current.Csv.Orders = TxtOrdersCsv.Text;
             ConfigService.Current.Paths.BGImage = TxtBgImage.Text;
             ConfigService.Current.Paths.BoardingSound = TxtBoardingSound.Text;
-            ConfigService.Current.Paths.CabinMusic = TxtCabinMusic.Text;
+            ConfigService.Current.Paths.CateringMusic = TxtCateringMusic.Text;
             ConfigService.Current.Csv.BoardingCount = TxtBoardingCountCsv.Text;
             ConfigService.Current.Paths.FrequentFlyerBg = TxtFrequentFlyerBg.Text;
             ConfigService.Save();

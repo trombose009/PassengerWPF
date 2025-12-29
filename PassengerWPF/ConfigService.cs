@@ -18,7 +18,7 @@ namespace PassengerWPF
         public string Cabin { get; set; } = "";
         public string BGImage { get; set; } = "";
         public string BoardingSound { get; set; }
-        public string CabinMusic { get; set; }
+        public string CateringMusic { get; set; }
         public string FrequentFlyerBg { get; set; } = "";
     }
 
