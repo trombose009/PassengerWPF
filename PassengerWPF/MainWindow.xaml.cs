@@ -42,6 +42,26 @@ namespace PassengerWPF
             var win = new SettingsWindow { Owner = this };
             win.ShowDialog();
         }
+        private void OpenObsOverlayTab(object sender, RoutedEventArgs e)
+        {
+            // Prüfen, ob Tab schon existiert
+            foreach (TabItem tab in MainTabs.Items)
+            {
+                if ((string)tab.Header == "Overlay / FlightData")
+                {
+                    MainTabs.SelectedItem = tab;
+                    return;
+                }
+            }
+
+            // Neues Tab erstellen
+            var overlayTab = new TabItem { Header = "Overlay / FlightData" };
+            var overlayControl = new FlightDataOverlayControl(); // Schritt 2
+            overlayTab.Content = overlayControl;
+            MainTabs.Items.Add(overlayTab);
+            MainTabs.SelectedItem = overlayTab;
+        }
+
 
         private void NewFlight_Click(object sender, RoutedEventArgs e)
         {
@@ -55,6 +75,9 @@ namespace PassengerWPF
             string passengerPath = ConfigService.Current.Csv.PassengerData;
             if (File.Exists(passengerPath))
                 File.WriteAllText(passengerPath, "Name,Sitzplatz,Avatar,Order1,Order2,Order3,Order4");
+
+            // 👉 LastFlightIds zurücksetzen
+            ResetLastFlightIds();
 
             // Timestamp aktualisieren
             UpdatePassengerDataTimestamp();
@@ -185,6 +208,33 @@ namespace PassengerWPF
                     txtStatus.Text = "PassengerData-Datei existiert nicht.";
                 }
             }
+        }
+
+        private void ResetLastFlightIds()
+        {
+            string path = ConfigService.Current.Csv.BoardingCount; // Pfad zur boarding_count.csv
+
+            if (!File.Exists(path))
+                return;
+
+            var lines = File.ReadAllLines(path).ToList();
+            if (lines.Count <= 1)
+                return;
+
+            // Header unverändert lassen
+            for (int i = 1; i < lines.Count; i++)
+            {
+                var parts = lines[i].Split(',');
+
+                // Erwartetes Format: Name,Count,LastFlightId
+                if (parts.Length >= 3)
+                {
+                    parts[2] = ""; // LastFlightId leeren
+                    lines[i] = string.Join(",", parts);
+                }
+            }
+
+            File.WriteAllLines(path, lines);
         }
 
 

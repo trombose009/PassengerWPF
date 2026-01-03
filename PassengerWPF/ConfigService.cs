@@ -8,6 +8,37 @@ namespace PassengerWPF
     {
         public PathsSection Paths { get; set; } = new();
         public CsvSection Csv { get; set; } = new();
+        public OverlaySection Overlay { get; set; } = new OverlaySection();
+    }
+
+    public class OverlaySection
+    {
+        // Panels
+        public bool ShowFlightData { get; set; } = true;
+        public bool ShowMap { get; set; } = true;
+        public bool ShowPassengerList { get; set; } = true;
+        public bool ShowBoarding { get; set; } = true;
+
+        // Rotation
+        public int RotationIntervalSeconds { get; set; } = 10;
+
+        // Flugdaten-Details
+        public bool ShowAltitude { get; set; } = true;
+        public bool ShowSpeed { get; set; } = true;
+        public bool ShowHeading { get; set; } = true;
+        public bool ShowPosition { get; set; } = true;
+        public bool ShowVSpeed { get; set; } = true;
+
+        // Flight Info
+        public string Departure { get; set; } = "";
+        public string Arrival { get; set; } = "";
+
+        // Webserver
+        public int ServerPort { get; set; } = 8080;
+
+        // SimBridge
+        public string SimBridgeIp { get; set; } = "localhost";
+        public int SimBridgePort { get; set; } = 8380;
     }
 
     public class PathsSection
@@ -17,9 +48,11 @@ namespace PassengerWPF
         public string Stewardess { get; set; } = "";
         public string Cabin { get; set; } = "";
         public string BGImage { get; set; } = "";
-        public string BoardingSound { get; set; }
-        public string CateringMusic { get; set; }
+        public string BoardingSound { get; set; } = "";
+        public string CateringMusic { get; set; } = "";
         public string FrequentFlyerBg { get; set; } = "";
+
+        public OverlaySection Overlay { get; set; } = new OverlaySection();
     }
 
     public class CsvSection
@@ -32,7 +65,6 @@ namespace PassengerWPF
         public string CurrentFlightId { get; set; } = "";
     }
 
-
     public static class ConfigService
     {
         public static Config Current { get; private set; } = new();
@@ -44,7 +76,6 @@ namespace PassengerWPF
         {
             if (!File.Exists(ConfigPath))
             {
-                // Wenn config.json fehlt, lege Standarddatei an
                 Current = new Config();
                 Save();
                 return;
@@ -55,18 +86,17 @@ namespace PassengerWPF
                 string json = File.ReadAllText(ConfigPath);
                 var loaded = JsonSerializer.Deserialize<Config>(json) ?? new Config();
 
-                // Sicherstellen, dass alle Unterobjekte existieren
                 loaded.Paths ??= new PathsSection();
                 loaded.Csv ??= new CsvSection();
+                loaded.Overlay ??= new OverlaySection();
+                loaded.Paths.Overlay ??= loaded.Overlay;
 
                 Current = loaded;
 
-                // Optional: Datei neu schreiben, um fehlende Felder sichtbar zu machen
                 Save();
             }
             catch (Exception ex)
             {
-                // Bei Fehlern immer Default anlegen
                 Current = new Config();
                 Save();
                 Console.WriteLine($"Fehler beim Laden der config.json: {ex.Message}");

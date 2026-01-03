@@ -16,7 +16,9 @@
                 <MenuItem Header="Vielflieger" Click="OpenFrequentFlyer"/>
                 <MenuItem Header="Catering" Click="OpenCatering"/>
                 <MenuItem Header="Avatar Mapping" Click="OpenAvatarMapping"/>
+                <MenuItem Header="OBS-Browser-Overlay &amp; FSUIPC-Konfiguration" Click="OpenObsOverlayTab"/>
             </MenuItem>
+
 
             <MenuItem Header="System">
                 <MenuItem Header="Einstellungen" Click="OpenSettings"/>

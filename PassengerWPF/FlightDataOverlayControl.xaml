@@ -1,0 +1,84 @@
+﻿<UserControl x:Class="PassengerWPF.FlightDataOverlayControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Black">
+
+    <Grid Margin="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="150"/>
+        </Grid.RowDefinitions>
+
+        <!-- Webserver + Rotation Einstellungen -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="10">
+            <TextBlock Text="Webserver Port:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="White"/>
+            <TextBox x:Name="TxtWebServerPort" Width="60" Text="8080"/>
+            <TextBlock Text="   Rotationsintervall (s):" VerticalAlignment="Center" Margin="10,0,5,0" Foreground="White"/>
+            <TextBox x:Name="TxtRotationInterval" Width="60" Text="20"/>
+            <Button Content="Übernehmen" Margin="10,0,0,0" Click="BtnApplySettings_Click"/>
+            <TextBlock x:Name="WebServerUrlTextBlock" VerticalAlignment="Center" Margin="20,0,0,0" FontWeight="Bold" Foreground="LightBlue" Text="URL: ---"/>
+        </StackPanel>
+
+        <!-- Hauptbereich -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="160"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Kontroll-Checkboxen -->
+            <StackPanel Grid.Column="0" Orientation="Vertical" Margin="10,0,0,0">
+                <CheckBox x:Name="ChkFlightData" Content="Flugdaten" IsChecked="True" Margin="0,0,0,5" Foreground="White"/>
+                <CheckBox x:Name="ChkMap" Content="Map" IsChecked="True" Margin="0,0,0,5" Foreground="White"/>
+                <CheckBox x:Name="ChkPassenger" Content="Passagierliste" IsChecked="True" Margin="0,0,0,5" Foreground="White"/>
+                <CheckBox x:Name="ChkBoarding" Content="Seat-Map" IsChecked="True" Margin="0,0,0,5" Foreground="White"/>
+            </StackPanel>
+
+            <!-- Overlay Panels -->
+            <Grid Grid.Column="1" Margin="0">
+                <!-- FlightData Panel -->
+                <Border x:Name="FlightDataPanel" Background="#CC000000" Padding="10" Visibility="Visible">
+                    <TextBlock x:Name="PreviewTextBlock"
+                               FontSize="16"
+                               Text="Daten werden geladen..."
+                               TextWrapping="Wrap"
+                               Foreground="LightGreen"/>
+                </Border>
+
+                <!-- Map Panel -->
+                <Border x:Name="MapPanel" Background="#80003300" Padding="10" Visibility="Collapsed">
+                    <TextBlock Text="Map / Flugzeug (Platzhalter)" Foreground="LightBlue" FontSize="16"/>
+                </Border>
+                <!-- Passenger Panel -->
+                <Border x:Name="PassengerPanel" Background="#CC000000" Padding="10" Visibility="Collapsed">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding OverlayPassengers}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="2">
+                                        <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="White" Margin="0,0,5,0"/>
+                                        <TextBlock Text="(" Foreground="White"/>
+                                        <TextBlock Text="{Binding Sitzplatz}" Foreground="LightGray"/>
+                                        <TextBlock Text=")" Foreground="White"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
+
+
+                <!-- SeatMap Panel -->
+                <Border x:Name="SeatMapPanel" Background="#80000000" Padding="10" Visibility="Collapsed">
+                    <Image x:Name="SeatMapImage" Stretch="Uniform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- Log-Fenster -->
+        <TextBox x:Name="OverlayLog" Grid.Row="2" IsReadOnly="True" TextWrapping="Wrap"
+                 VerticalScrollBarVisibility="Auto" Background="#FF202020"
+                 Foreground="LightGreen" FontFamily="Consolas" FontSize="12"/>
+    </Grid>
+</UserControl>
