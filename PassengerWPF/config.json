@@ -1,0 +1,53 @@
+{
+  "Paths": {
+    "Avatars": "images\\avatars",
+    "Orders": "images\\orders",
+    "Stewardess": "images\\stewardess",
+    "Cabin": "images\\cabin",
+    "BGImage": "stuff\\BGImage.png",
+    "BoardingSound": "stuff\\bingbing.wav",
+    "CateringMusic": "stuff\\CateringMusic.mp3",
+    "FrequentFlyerBg": "stuff\\FrequentFlyerBg.png",
+    "Overlay": {
+      "ShowFlightData": true,
+      "ShowMap": true,
+      "ShowPassengerList": true,
+      "ShowBoarding": true,
+      "RotationIntervalSeconds": 10,
+      "ShowAltitude": true,
+      "ShowSpeed": true,
+      "ShowHeading": true,
+      "ShowPosition": true,
+      "ShowVSpeed": true,
+      "Departure": "",
+      "Arrival": "",
+      "ServerPort": 8080,
+      "SimBridgeIp": "localhost",
+      "SimBridgePort": 8380
+    }
+  },
+  "Csv": {
+    "PassengerData": "PassengerData.csv",
+    "AvatarDb": "AvatarDb.csv",
+    "Orders": "orders.csv",
+    "BoardingCount": "boarding_count.csv",
+    "CurrentFlightId": "2ea7182e-4fed-4aa6-b0ae-ef9a208c5904"
+  },
+  "Overlay": {
+    "ShowFlightData": true,
+    "ShowMap": true,
+    "ShowPassengerList": true,
+    "ShowBoarding": true,
+    "RotationIntervalSeconds": 10,
+    "ShowAltitude": true,
+    "ShowSpeed": true,
+    "ShowHeading": true,
+    "ShowPosition": true,
+    "ShowVSpeed": true,
+    "Departure": "",
+    "Arrival": "",
+    "ServerPort": 8080,
+    "SimBridgeIp": "localhost",
+    "SimBridgePort": 8380
+  }
+}

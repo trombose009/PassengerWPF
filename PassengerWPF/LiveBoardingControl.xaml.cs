@@ -149,9 +149,23 @@ namespace PassengerWPF
         {
             if (!string.IsNullOrEmpty(seatmapPath) && File.Exists(seatmapPath))
             {
-                SeatmapImage.Source = new BitmapImage(new Uri(seatmapPath));
+                try
+                {
+                    // absolute Datei-URI erzeugen
+                    var uri = new Uri(IOPath.GetFullPath(seatmapPath), UriKind.Absolute);
+                    SeatmapImage.Source = new BitmapImage(uri);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Fehler beim Laden der Sitzplan-Bilddatei:\n" + ex.Message);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Sitzplan-Datei existiert nicht:\n" + seatmapPath);
             }
         }
+
 
         private void CreateSeatMarkers()
         {

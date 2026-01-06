@@ -15,11 +15,12 @@ namespace PassengerWPF
         public static List<Passenger> LoadPassengers(string csvPath, string avatarsPath, List<string> allSeats)
         {
             var passengers = new List<Passenger>();
+            bool changed = false; // Merkt sich, ob die CSV neu geschrieben werden muss
 
             if (!File.Exists(csvPath))
                 return passengers;
 
-            // CSV sicher lesen (kein Lock!)
+            // CSV sicher lesen (kein Lock)
             using var reader = new StreamReader(
                 new FileStream(csvPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
             );
@@ -33,18 +34,42 @@ namespace PassengerWPF
             using var csv = new CsvReader(reader, config);
             passengers = csv.GetRecords<Passenger>().ToList();
 
-            bool changed = false;
+            // 🔹 Auto-Repair: ungültige Sitze erkennen
+            foreach (var p in passengers)
+            {
+                if (!string.IsNullOrWhiteSpace(p.Sitzplatz))
+                {
+                    var seat = p.Sitzplatz.ToUpper().Trim();
 
-            // Sitzplätze sammeln
+                    if (!allSeats.Contains(seat))
+                    {
+                        // 🧹 Ungültigen Sitz entfernen → wird neu vergeben
+                        File.AppendAllText(
+                            "seat_autorepair.log",
+                            $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | {p.Name} | ungültiger Sitz repariert: {seat}\n"
+                        );
+
+                        p.Sitzplatz = null;
+                        changed = true;
+                    }
+                    else
+                    {
+                        // Normalisieren
+                        p.Sitzplatz = seat;
+                    }
+                }
+            }
+
+            // 🔹 Alle aktuell belegten Sitze sammeln (nach Repair!)
             var takenSeats = passengers
                 .Where(p => !string.IsNullOrEmpty(p.Sitzplatz))
                 .Select(p => p.Sitzplatz.ToUpper())
                 .ToHashSet();
 
-            // Passagiere bearbeiten
+            // 🔹 Passagiere bearbeiten
             foreach (var p in passengers)
             {
-                // Sitzplatz vergeben
+                // Sitzplatz vergeben, wenn leer
                 if (string.IsNullOrEmpty(p.Sitzplatz))
                 {
                     var freeSeats = allSeats.Except(takenSeats).ToList();
@@ -52,8 +77,22 @@ namespace PassengerWPF
                     {
                         var seat = freeSeats[random.Next(freeSeats.Count)];
                         p.Sitzplatz = seat.ToUpper();
-                        takenSeats.Add(seat.ToUpper());
+                        takenSeats.Add(p.Sitzplatz);
                         changed = true;
+
+                        // Optional Log
+                        File.AppendAllText(
+                            "seat_autorepair.log",
+                            $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | {p.Name} | Sitz automatisch vergeben: {p.Sitzplatz}\n"
+                        );
+                    }
+                    else
+                    {
+                        // Kein freier Sitz mehr vorhanden
+                        File.AppendAllText(
+                            "seat_autorepair.log",
+                            $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | {p.Name} | Kein freier Sitz verfügbar!\n"
+                        );
                     }
                 }
 
@@ -64,14 +103,14 @@ namespace PassengerWPF
                     changed = true;
                 }
 
-                // Bestellbilder
+                // Bestellbilder-Fallback
                 p.Order1 ??= "placeholder.png";
                 p.Order2 ??= "placeholder.png";
                 p.Order3 ??= "placeholder.png";
                 p.Order4 ??= "placeholder.png";
             }
 
-            // Nur schreiben, wenn Änderungen vorgenommen wurden
+            // 🔹 CSV nur neu schreiben, wenn Änderungen erfolgt sind
             if (changed)
             {
                 using var writer = new StreamWriter(

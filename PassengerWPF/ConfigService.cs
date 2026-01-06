@@ -4,6 +4,9 @@ using System.Text.Json;
 
 namespace PassengerWPF
 {
+    // -------------------------
+    // Konfigurationsklassen
+    // -------------------------
     public class Config
     {
         public PathsSection Paths { get; set; } = new();
@@ -59,12 +62,36 @@ namespace PassengerWPF
     {
         public string PassengerData { get; set; } = "";
         public string AvatarDb { get; set; } = "";
-        public string ActualFlight { get; set; } = "";
         public string Orders { get; set; } = "";
         public string BoardingCount { get; set; } = "";
         public string CurrentFlightId { get; set; } = "";
     }
 
+    // -------------------------
+    // Hilfsklasse für relative Pfade
+    // -------------------------
+    public static class PathHelpers
+    {
+        public static string MakeRelative(string absolutePath)
+        {
+            if (string.IsNullOrEmpty(absolutePath)) return absolutePath;
+            string exeRoot = AppDomain.CurrentDomain.BaseDirectory;
+            Uri pathUri = new Uri(absolutePath);
+            Uri rootUri = new Uri(exeRoot);
+            Uri relativeUri = rootUri.MakeRelativeUri(pathUri);
+            return relativeUri.ToString().Replace('/', '\\');
+        }
+
+        public static string MakeAbsolute(string relativePath)
+        {
+            if (string.IsNullOrEmpty(relativePath)) return relativePath;
+            return Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, relativePath));
+        }
+    }
+
+    // -------------------------
+    // ConfigService
+    // -------------------------
     public static class ConfigService
     {
         public static Config Current { get; private set; } = new();
@@ -72,6 +99,9 @@ namespace PassengerWPF
         private static readonly string ConfigPath =
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
 
+        // -------------------------
+        // Config laden
+        // -------------------------
         public static void Load()
         {
             if (!File.Exists(ConfigPath))
@@ -93,6 +123,9 @@ namespace PassengerWPF
 
                 Current = loaded;
 
+                // --- Relative Pfade beim Laden in absolute auflösen ---
+                ResolvePathsToAbsolute();
+
                 Save();
             }
             catch (Exception ex)
@@ -103,18 +136,65 @@ namespace PassengerWPF
             }
         }
 
+        // -------------------------
+        // Config speichern
+        // -------------------------
         public static void Save()
         {
             try
             {
+                // --- Pfade vor dem Speichern in relative konvertieren ---
+                ConvertPathsToRelative();
+
                 string json = JsonSerializer.Serialize(Current,
                     new JsonSerializerOptions { WriteIndented = true });
+
                 File.WriteAllText(ConfigPath, json);
+
+                // --- Danach wieder absolute Pfade für App behalten ---
+                ResolvePathsToAbsolute();
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Fehler beim Speichern der config.json: {ex.Message}");
             }
+        }
+
+        // -------------------------
+        // Hilfsmethoden
+        // -------------------------
+        private static void ConvertPathsToRelative()
+        {
+            Current.Paths.Avatars = PathHelpers.MakeRelative(Current.Paths.Avatars);
+            Current.Paths.Orders = PathHelpers.MakeRelative(Current.Paths.Orders);
+            Current.Paths.Stewardess = PathHelpers.MakeRelative(Current.Paths.Stewardess);
+            Current.Paths.Cabin = PathHelpers.MakeRelative(Current.Paths.Cabin);
+            Current.Paths.BGImage = PathHelpers.MakeRelative(Current.Paths.BGImage);
+            Current.Paths.BoardingSound = PathHelpers.MakeRelative(Current.Paths.BoardingSound);
+            Current.Paths.CateringMusic = PathHelpers.MakeRelative(Current.Paths.CateringMusic);
+            Current.Paths.FrequentFlyerBg = PathHelpers.MakeRelative(Current.Paths.FrequentFlyerBg);
+
+            Current.Csv.PassengerData = PathHelpers.MakeRelative(Current.Csv.PassengerData);
+            Current.Csv.AvatarDb = PathHelpers.MakeRelative(Current.Csv.AvatarDb);
+            Current.Csv.Orders = PathHelpers.MakeRelative(Current.Csv.Orders);
+            Current.Csv.BoardingCount = PathHelpers.MakeRelative(Current.Csv.BoardingCount);
+        }
+
+        private static void ResolvePathsToAbsolute()
+        {
+            Current.Paths.Avatars = PathHelpers.MakeAbsolute(Current.Paths.Avatars);
+            Current.Paths.Orders = PathHelpers.MakeAbsolute(Current.Paths.Orders);
+            Current.Paths.Stewardess = PathHelpers.MakeAbsolute(Current.Paths.Stewardess);
+            Current.Paths.Cabin = PathHelpers.MakeAbsolute(Current.Paths.Cabin);
+            Current.Paths.BGImage = PathHelpers.MakeAbsolute(Current.Paths.BGImage);
+            Current.Paths.BoardingSound = PathHelpers.MakeAbsolute(Current.Paths.BoardingSound);
+            Current.Paths.CateringMusic = PathHelpers.MakeAbsolute(Current.Paths.CateringMusic);
+            Current.Paths.FrequentFlyerBg = PathHelpers.MakeAbsolute(Current.Paths.FrequentFlyerBg);
+
+            Current.Csv.PassengerData = PathHelpers.MakeAbsolute(Current.Csv.PassengerData);
+            Current.Csv.AvatarDb = PathHelpers.MakeAbsolute(Current.Csv.AvatarDb);
+            Current.Csv.Orders = PathHelpers.MakeAbsolute(Current.Csv.Orders);
+            Current.Csv.BoardingCount = PathHelpers.MakeAbsolute(Current.Csv.BoardingCount);
         }
     }
 }

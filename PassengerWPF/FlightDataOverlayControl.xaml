@@ -1,16 +1,20 @@
 ﻿<UserControl x:Class="PassengerWPF.FlightDataOverlayControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:wpf="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
              Background="Black">
 
     <Grid Margin="0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <!-- Einstellungen -->
             <RowDefinition Height="*"/>
+            <!-- Hauptbereich -->
             <RowDefinition Height="150"/>
+            <!-- Log -->
         </Grid.RowDefinitions>
 
-        <!-- Webserver + Rotation Einstellungen -->
+        <!-- Einstellungen: Webserver Port + Rotation -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="10">
             <TextBlock Text="Webserver Port:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="White"/>
             <TextBox x:Name="TxtWebServerPort" Width="60" Text="8080"/>
@@ -20,22 +24,58 @@
             <TextBlock x:Name="WebServerUrlTextBlock" VerticalAlignment="Center" Margin="20,0,0,0" FontWeight="Bold" Foreground="LightBlue" Text="URL: ---"/>
         </StackPanel>
 
-        <!-- Hauptbereich -->
+        <!-- Hauptbereich: Kontroll-Checkboxen + Overlay-Panels -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="160"/>
+                <ColumnDefinition Width="200"/>
+                <!-- Kontroll-Checkboxen -->
                 <ColumnDefinition Width="*"/>
+                <!-- Overlay-Panels -->
             </Grid.ColumnDefinitions>
 
             <!-- Kontroll-Checkboxen -->
             <StackPanel Grid.Column="0" Orientation="Vertical" Margin="10,0,0,0">
                 <CheckBox x:Name="ChkFlightData" Content="Flugdaten" IsChecked="True" Margin="0,0,0,5" Foreground="White"/>
+                <!-- Untermenü für Flugdaten -->
+                <Border x:Name="FlightDataMenu" Background="#AA222222" Padding="5" Margin="10,0,0,5" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock Text="Anzuzeigende Flugdaten:" Foreground="White" FontWeight="Bold"/>
+                        <StackPanel Orientation="Vertical" Margin="5,2,0,5">
+                            <CheckBox x:Name="ChkShowAltitude" Content="Altitude" IsChecked="True" Foreground="White"/>
+                            <CheckBox x:Name="ChkShowSpeed" Content="Speed" IsChecked="True" Foreground="White"/>
+                            <CheckBox x:Name="ChkShowHeading" Content="Heading" IsChecked="True" Foreground="White"/>
+                            <CheckBox x:Name="ChkShowPosition" Content="Position" IsChecked="True" Foreground="White"/>
+                            <CheckBox x:Name="ChkShowVSpeed" Content="VSpeed" IsChecked="True" Foreground="White"/>
+                        </StackPanel>
+
+                        <TextBlock Text="Manuelle Eingaben:" Foreground="White" FontWeight="Bold"/>
+                        <StackPanel Orientation="Vertical" Margin="5,2,0,0">
+                            <StackPanel Orientation="Horizontal" Margin="0,2" VerticalAlignment="Center">
+                                <CheckBox x:Name="ChkManualAircraft" IsChecked="True" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <TextBlock Text="Aircraft Type:" Foreground="White" Width="80"/>
+                                <TextBox x:Name="TxtAircraftType" Width="80"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,2" VerticalAlignment="Center">
+                                <CheckBox x:Name="ChkManualDep" IsChecked="True" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <TextBlock Text="DEP:" Foreground="White" Width="80"/>
+                                <TextBox x:Name="TxtDep" Width="80"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,2" VerticalAlignment="Center">
+                                <CheckBox x:Name="ChkManualArr" IsChecked="True" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <TextBlock Text="ARR:" Foreground="White" Width="80"/>
+                                <TextBox x:Name="TxtArr" Width="80"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+
                 <CheckBox x:Name="ChkMap" Content="Map" IsChecked="True" Margin="0,0,0,5" Foreground="White"/>
                 <CheckBox x:Name="ChkPassenger" Content="Passagierliste" IsChecked="True" Margin="0,0,0,5" Foreground="White"/>
                 <CheckBox x:Name="ChkBoarding" Content="Seat-Map" IsChecked="True" Margin="0,0,0,5" Foreground="White"/>
             </StackPanel>
 
-            <!-- Overlay Panels -->
+            <!-- Overlay-Panels -->
             <Grid Grid.Column="1" Margin="0">
                 <!-- FlightData Panel -->
                 <Border x:Name="FlightDataPanel" Background="#CC000000" Padding="10" Visibility="Visible">
@@ -47,9 +87,10 @@
                 </Border>
 
                 <!-- Map Panel -->
-                <Border x:Name="MapPanel" Background="#80003300" Padding="10" Visibility="Collapsed">
-                    <TextBlock Text="Map / Flugzeug (Platzhalter)" Foreground="LightBlue" FontSize="16"/>
+                <Border x:Name="MapPanel" Background="Black" Visibility="Collapsed">
+                    <wpf:WebView2 x:Name="FlightMapWebView"/>
                 </Border>
+
                 <!-- Passenger Panel -->
                 <Border x:Name="PassengerPanel" Background="#CC000000" Padding="10" Visibility="Collapsed">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -67,7 +108,6 @@
                         </ItemsControl>
                     </ScrollViewer>
                 </Border>
-
 
                 <!-- SeatMap Panel -->
                 <Border x:Name="SeatMapPanel" Background="#80000000" Padding="10" Visibility="Collapsed">

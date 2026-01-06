@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Flight Overlay</title>
+<style>
+body { margin:0; padding:0; background-color:transparent; font-family:Bahnschrift,sans-serif; font-weight:700; font-size:28px; overflow:hidden; }
+.panel { position: fixed; top:50px; right:10px; width:30vw; height:60vh; padding:15px; box-sizing:border-box; background: rgba(0,0,0,0.5); backdrop-filter: blur(6px); opacity:0; transition: opacity 0.6s ease; overflow-y:auto; border-radius:20px; pointer-events:none; }
+.panel.visible { opacity:1; pointer-events:auto; }
+#overlayContainer { display:flex; flex-direction:column; justify-content:center; align-items:flex-start; line-height:1.2; font-size:20px; height:100%; color:#66CCFF; }
+.overlayLine { margin:3px 0; }
+#overlayContainer h2 { font-size:24px; margin-bottom:8px; text-decoration: underline; }
+#map { width:100%; height:100%; border-radius:20px; }
+#seatMapPanel img { max-width:100%; max-height:100%; display:block; margin:auto; border-radius:20px; }
+</style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+<script src="https://rawcdn.githack.com/bbecquet/Leaflet.RotatedMarker/master/leaflet.rotatedMarker.js"></script>
+</head>
+<body>
+
+<div class="panel" id="flightDataPanel">
+    <div id="overlayContainer">
+        <h2>Flugdaten</h2>
+        <div class="overlayLine" id="aircraftType">---</div>
+        <div class="overlayLine" id="dep">---</div>
+        <div class="overlayLine" id="arr">---</div>
+        <div class="overlayLine" id="altitude">---</div>
+        <div class="overlayLine" id="groundSpeed">---</div>
+        <div class="overlayLine" id="heading">---</div>
+        <div class="overlayLine" id="vSpeed">---</div>
+        <div class="overlayLine" id="coordinates">---</div>
+    </div>
+</div>
+
+<div class="panel" id="mapPanel">
+    <div id="map"></div>
+</div>
+
+<div class="panel" id="passengerPanel">
+    <div id="passengerList">Lade Passagierliste...</div>
+</div>
+
+<div class="panel" id="seatMapPanel">
+    <img src="stuff/boarding_render.png" alt="Seat Map"/>
+</div>
+
+<script>
+const SIMBRIDGE_URL = "http://localhost:8080/";
+let panels = [];
+let currentPanel = 0;
+let rotationInterval = 5000;
+let panelsInitialized = false;
+let rotationStarted = false;
+
+// Leaflet Map
+const map = L.map('map',{zoomControl:true}).setView([48,11],5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+const planeIcon = L.icon({ iconUrl:'airplane_trans.png', iconSize:[60,31], iconAnchor:[30,15] });
+let planeMarker = null;
+let currentPos=[48,11], targetPos=[48,11], heading=0, animating=false;
+
+// --- Daten abrufen ---
+async function getData(){
+    try{
+        const res = await fetch(SIMBRIDGE_URL+'data');
+        const data = await res.json();
+
+        rotationInterval = data.RotationInterval * 1000;
+
+        // Panels nur einmal initialisieren
+        if(!panelsInitialized){
+            if(data.ShowFlightData) panels.push('flightDataPanel');
+            if(data.ShowMap)        panels.push('mapPanel');
+            if(data.ShowPassenger) panels.push('passengerPanel');
+            if(data.ShowBoarding)  panels.push('seatMapPanel');
+
+            if(panels.length > 0){
+                panels.forEach(id => document.getElementById(id).classList.remove('visible'));
+                currentPanel = 0;
+                document.getElementById(panels[0]).classList.add('visible');
+            }
+
+            panelsInitialized = true;
+
+            // Rotation starten
+            if(!rotationStarted){
+                setTimeout(rotatePanels, rotationInterval);
+                rotationStarted = true;
+            }
+        }
+
+        // Flugdaten aktualisieren
+        document.getElementById("aircraftType").innerText = "Aircraft: "+data.aircraftType;
+        document.getElementById("dep").innerText = "DEP: "+data.dep;
+        document.getElementById("arr").innerText = "ARR: "+data.arr;
+        document.getElementById("altitude").innerText = "Altitude: "+data.altitude.toFixed(0);
+        document.getElementById("groundSpeed").innerText = "GroundSpeed: "+data.speed.toFixed(0);
+        document.getElementById("heading").innerText = "Heading: "+data.heading.toFixed(0);
+        document.getElementById("vSpeed").innerText = "VerticalSpeed: "+data.vSpeed.toFixed(0);
+        document.getElementById("coordinates").innerText = "Coords: "+data.latitude.toFixed(6)+", "+data.longitude.toFixed(6);
+
+        // Passagiere
+        if(data.passengers) document.getElementById("passengerList").innerText = data.passengers.join("\n");
+
+        // Seat Map reload
+        if(panels.includes('seatMapPanel')){
+            const img = document.querySelector('#seatMapPanel img');
+            img.src = 'stuff/boarding_render.png?t=' + new Date().getTime();
+        }
+
+        // Map aktualisieren
+        targetPos = [data.latitude,data.longitude];
+        heading = data.heading;
+        if(!animating) animatePlane();
+
+    } catch(err){ console.log("Fehler beim Abrufen der Daten",err); }
+}
+
+setInterval(getData,500);
+
+// --- Plane Animation ---
+function animatePlane(){
+    animating=true;
+    function step(){
+        const dx = targetPos[0]-currentPos[0];
+        const dy = targetPos[1]-currentPos[1];
+        const speed = 0.05;
+        currentPos[0]+=dx*speed;
+        currentPos[1]+=dy*speed;
+
+        if(!planeMarker){
+            planeMarker = L.marker(currentPos,{icon:planeIcon, rotationAngle:heading, rotationOrigin:"center"}).addTo(map);
+        } else {
+            planeMarker.setLatLng(currentPos);
+            planeMarker.setRotationAngle(heading);
+        }
+
+        map.setView(currentPos,map.getZoom(),{animate:false});
+
+        if(Math.abs(dx)>0.00001 || Math.abs(dy)>0.00001) requestAnimationFrame(step);
+        else animating=false;
+    }
+    requestAnimationFrame(step);
+}
+
+// --- Panel Rotation ---
+function rotatePanels(){
+    if(panels.length===0) return;
+    panels.forEach(id => document.getElementById(id).classList.remove('visible'));
+    currentPanel = (currentPanel+1) % panels.length;
+    const panelId = panels[currentPanel];
+    document.getElementById(panelId).classList.add('visible');
+
+    // Map sichtbar -> Leaflet neu rendern
+    if(panelId === 'mapPanel'){
+        setTimeout(() => {
+            map.invalidateSize();
+            map.setView(currentPos, map.getZoom(), {animate:false});
+            if(!planeMarker){
+                planeMarker = L.marker(currentPos, {icon:planeIcon, rotationAngle:heading, rotationOrigin:"center"}).addTo(map);
+            } else {
+                planeMarker.setLatLng(currentPos);
+                planeMarker.setRotationAngle(heading);
+            }
+        }, 100);
+    }
+
+    setTimeout(rotatePanels, rotationInterval);
+}
+</script>
+</body>
+</html>

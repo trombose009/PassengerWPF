@@ -103,11 +103,25 @@ namespace PassengerWPF
 
         private void LoadAndPlacePassengers()
         {
+            // Alte Passagiere entfernen
+            var oldElements = CabinCanvas.Children
+                .OfType<FrameworkElement>()
+                .Where(c => c.Tag != null &&
+                            (c.Tag.ToString().StartsWith("avatar_passenger_") ||
+                             c.Tag.ToString().StartsWith("name_") ||
+                             c.Tag.ToString().StartsWith("order_badge_")))
+                .ToList();
+
+            foreach (var elem in oldElements)
+                CabinCanvas.Children.Remove(elem);
+
             string csvPath = ConfigService.Current.Csv.PassengerData;
             string avatarsPath = ConfigService.Current.Paths.Avatars;
 
             var allSeats = seatPositions.SelectMany(r => r.Value.Keys.Select(l => r.Key + l)).ToList();
-            passengers = PassengerDataService.LoadPassengers(csvPath, avatarsPath, allSeats);
+            passengers = PassengerDataService.LoadPassengers(csvPath, avatarsPath, allSeats)
+                .Select(p => { p.Sitzplatz = p.Sitzplatz.Trim().ToUpper(); return p; })
+                .ToList();
 
             var takenSeatsPerRow = new Dictionary<string, HashSet<string>>();
             foreach (var row in seatPositions.Keys)
@@ -120,25 +134,22 @@ namespace PassengerWPF
 
                 var (row, seatLetter) = GetRowAndSeatLetter(passenger.Sitzplatz);
 
-                // Nächstgelegene freie Reihe wählen, falls nötig
-                if (!seatPositions.ContainsKey(row) || !seatPositions[row].ContainsKey(seatLetter) || takenSeatsPerRow[row].Count >= seatPositions[row].Count)
+                // Nur freie Reihe wählen, wenn Sitzplatz leer oder ungültig
+                if (!seatPositions.ContainsKey(row) || !seatPositions[row].ContainsKey(seatLetter) || takenSeatsPerRow[row].Contains(seatLetter))
                 {
-                    row = seatPositions
+                    var freeRow = seatPositions
                         .OrderBy(r => Math.Abs(r.Value.Count - takenSeatsPerRow[r.Key].Count))
                         .FirstOrDefault(r => takenSeatsPerRow[r.Key].Count < r.Value.Count).Key;
 
-                    if (row == null) continue; // Alle Reihen voll
-
-                    var freeSeats = seatPositions[row].Keys.Except(takenSeatsPerRow[row]).ToList();
-                    seatLetter = freeSeats.FirstOrDefault();
-                    if (seatLetter == null) continue;
-                }
-
-                if (takenSeatsPerRow[row].Contains(seatLetter))
-                {
-                    var freeSeats = seatPositions[row].Keys.Except(takenSeatsPerRow[row]).ToList();
-                    if (freeSeats.Count > 0) seatLetter = freeSeats.First();
-                    else continue;
+                    if (freeRow != null)
+                    {
+                        row = freeRow;
+                        var freeSeats = seatPositions[row].Keys.Except(takenSeatsPerRow[row]).ToList();
+                        if (freeSeats.Count > 0)
+                            seatLetter = freeSeats.First();
+                        else
+                            continue;
+                    }
                 }
 
                 takenSeatsPerRow[row].Add(seatLetter);
@@ -196,7 +207,7 @@ namespace PassengerWPF
             {
                 "back" => letter is "A" or "B" or "C",
                 "near" => letter is "A" or "B" or "C",
-                "front" => letter is "B" or "C", // front-Reihe
+                "front" => letter is "B" or "C",
                 _ => true
             };
         }
@@ -206,13 +217,13 @@ namespace PassengerWPF
             switch (row)
             {
                 case "back":
-                    Panel.SetZIndex(Stewardess, 3); // hinter middle + front seats
+                    Panel.SetZIndex(Stewardess, 3);
                     break;
                 case "near":
-                    Panel.SetZIndex(Stewardess, 6); // hinter front seats
+                    Panel.SetZIndex(Stewardess, 6);
                     break;
                 case "front":
-                    Panel.SetZIndex(Stewardess, 9); // vor allen
+                    Panel.SetZIndex(Stewardess, 9);
                     break;
                 default:
                     Panel.SetZIndex(Stewardess, 3);
@@ -220,6 +231,7 @@ namespace PassengerWPF
             }
         }
 
+        // --- Stewardess-Animationen bleiben unverändert ---
         private async Task StewardessInitialMoveBack()
         {
             double targetY = baseRowY["front"] - 145;
@@ -242,7 +254,6 @@ namespace PassengerWPF
                 if ((direction > 0 && y > targetY) || (direction < 0 && y < targetY)) y = targetY;
 
                 Canvas.SetTop(Stewardess, y);
-
                 SetStewardessZIndex(row);
                 await Task.Delay(16);
             }
@@ -268,7 +279,6 @@ namespace PassengerWPF
             string seatLetter = GetRowAndSeatLetter(p.Sitzplatz).letter;
             bool isLeft = IsSeatLeft(row, seatLetter);
 
-            // --- Reinlaufen ---
             string reinImage = isLeft ? "stlinks.png" : "strechts.png";
             Stewardess.Source = LoadStewardessImage(reinImage);
 
@@ -288,7 +298,6 @@ namespace PassengerWPF
 
             Canvas.SetLeft(Stewardess, targetX);
 
-            // --- Servieren ---
             string servImage = isLeft ? "stservicelinks.png" : "stservicerechts.png";
             Stewardess.Source = LoadStewardessImage(servImage);
 
@@ -301,10 +310,8 @@ namespace PassengerWPF
             }
 
             Canvas.SetLeft(Stewardess, targetX);
-
             ShowOrderIconsFor(p);
 
-            // --- Rauslaufen ---
             string rausImage = isLeft ? "strechts.png" : "stlinks.png";
             Stewardess.Source = LoadStewardessImage(rausImage);
 
@@ -421,7 +428,6 @@ namespace PassengerWPF
             if (StartServiceButton != null)
                 StartServiceButton.IsEnabled = false;
 
-            // Musik starten
             string musicPath = ConfigService.Current.Paths.CateringMusic;
             if (File.Exists(musicPath))
             {
@@ -478,35 +484,12 @@ namespace PassengerWPF
             }
 
             if (Stewardess != null)
-                await MoveStewardessToGangY(700, ""); // zurück
+                await MoveStewardessToGangY(700, "");
 
             cateringMusicPlayer?.Stop();
 
             if (StartServiceButton != null)
                 StartServiceButton.IsEnabled = true;
-        }
-
-        private void RefreshButton_Click(object sender, RoutedEventArgs e)
-        {
-            ReloadPassengers();
-        }
-
-        private void ReloadPassengers()
-        {
-            // Alte Passagiere und Namensschilder entfernen
-            var oldElements = CabinCanvas.Children
-                .OfType<FrameworkElement>()
-                .Where(c => c.Tag != null &&
-                            (c.Tag.ToString().StartsWith("avatar_passenger_") ||
-                             c.Tag.ToString().StartsWith("name_") ||
-                             c.Tag.ToString().StartsWith("order_badge_")))
-                .ToList();
-
-            foreach (var elem in oldElements)
-                CabinCanvas.Children.Remove(elem);
-
-            // Passagierliste neu laden und platzieren
-            LoadAndPlacePassengers();
         }
     }
 }

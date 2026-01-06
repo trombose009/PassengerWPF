@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Flight Map Overlay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+  html, body, #map {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+  }
+
+  /* Status-Overlay oben links */
+  #status {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      color: white;
+      font-weight: bold;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Statusanzeige -->
+<div id="status">Flugzeugstandort</div>
+
+<!-- Map-Container -->
+<div id="map"></div>
+
+<script>
+  // Karte initialisieren
+  var map = L.map('map').setView([0, 0], 2);
+
+  // OpenStreetMap Tiles
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  // Flugzeugmarker initial bei [0,0]
+  var planeMarker = L.marker([0, 0]).addTo(map);
+
+  // Funktion zum Aktualisieren des Flugzeugs
+  function updatePlane(lat, lon) {
+      planeMarker.setLatLng([lat, lon]);
+      map.setView([lat, lon], map.getZoom());
+  }
+</script>
+
+</body>
+</html>
