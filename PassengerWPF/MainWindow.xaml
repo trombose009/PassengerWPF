@@ -19,21 +19,81 @@
                 <MenuItem Header="OBS-Browser-Overlay &amp; FSUIPC-Konfiguration" Click="OpenObsOverlayTab"/>
             </MenuItem>
 
-
             <MenuItem Header="System">
                 <MenuItem Header="Einstellungen" Click="OpenSettings"/>
             </MenuItem>
-
-            <MenuItem Header="Flug">
-                <MenuItem Header="Neuen Flug starten" Click="NewFlight_Click" InputGestureText="Ctrl+N"/>
-            </MenuItem>
         </Menu>
 
-        <!-- Tab-Bereich -->
+        <!-- TabControl -->
         <TabControl x:Name="MainTabs">
-            <!-- Tabs werden dynamisch hinzugefügt -->
-        </TabControl>
 
-       
+            <!-- Start-Tab Flugstatus -->
+            <TabItem Header="Flugstatus" IsSelected="True">
+                <Border CornerRadius="10" Padding="20" Margin="10" Background="#1E1E1E">
+                    <StackPanel VerticalAlignment="Top" HorizontalAlignment="Left" Width="563">
+
+                        <!-- PassengerData-Zeitstempel -->
+                        <TextBlock x:Name="TxtPassengerTimestampTab"
+                                   Text="Letzter Start eines neuen Fluges: ..."
+                                   FontSize="16"
+                                   Foreground="White"
+                                   TextWrapping="Wrap"
+                                   Width="500"
+                                   Margin="0,0,0,20"/>
+
+                        <!-- Neuer Flug starten Button -->
+                        <Button x:Name="BtnNewFlight"
+                                Content="Neuen Flug starten"
+                                Width="250"
+                                Height="45"
+                                Background="#4682B4"
+                                Foreground="White"
+                                FontWeight="Bold"
+                                Click="NewFlight_Click"
+                                Margin="0,0,0,10"/>
+
+                        <!-- SimConnect prüfen Button -->
+                        <Button x:Name="BtnCheckSimConnect"
+                                Content="Verbindung zu SimConnect prüfen"
+                                Width="250"
+                                Height="45"
+                                Background="#4682B4"
+                                Foreground="White"
+                                FontWeight="Bold"
+                                Click="CheckSimConnectConnection_Click"
+                                Margin="0,0,0,10"/>
+
+                        <!-- SimConnect Statusanzeige mit Ampel -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,0,0,10">
+                            <TextBlock x:Name="SimConnectStatusText"
+                                       Text="SimConnect Status: Unbekannt"
+                                       FontWeight="Bold"
+                                       Foreground="White"
+                                       VerticalAlignment="Center"/>
+                            <Ellipse x:Name="SimConnectIndicator"
+                                     Width="20"
+                                     Height="20"
+                                     Fill="Gray"
+                                     Margin="10,0,0,0"
+                                     VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- Bedienungsanleitung / Hinweis -->
+                        <Border Background="#333333" CornerRadius="5" Padding="10" Margin="0,20,0,0">
+                            <StackPanel>
+                                <TextBlock FontSize="16" FontWeight="Bold" Foreground="OrangeRed" Text="⚠️ Hinweis" Margin="0,0,0,5"/>
+                                <TextBlock TextWrapping="Wrap" Foreground="White">
+                                    Beim Klicken auf "Neuen Flug starten", werden alle Passagiere und deren Essens-Orders aus der Datei passengerdata.csv gelöscht. Die boarding_count.csv bleibt davon unberührt und zählt die Flüge weiter hoch.
+                                    Erst nach dem Starten eines neuen Flugs können Passagiere, die beim letzten Flug schon dabei waren erneut buchen und werden dann auch in der Vielfliegerliste erneu berücksichtigt.
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </Border>
+            </TabItem>
+
+            <!-- Weitere Tabs werden dynamisch hinzugefügt -->
+        </TabControl>
     </DockPanel>
 </Window>

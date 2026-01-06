@@ -13,10 +13,7 @@ namespace PassengerWPF
         private HttpListener listener;
         private bool isRunning = false;
 
-        public WebServer()
-        {
-            // leer
-        }
+        public WebServer() { }
 
         public void Start()
         {
@@ -40,7 +37,6 @@ namespace PassengerWPF
         public void Stop()
         {
             if (!isRunning) return;
-
             try
             {
                 isRunning = false;
@@ -69,7 +65,7 @@ namespace PassengerWPF
             string url = context.Request.Url.AbsolutePath.ToLower().TrimStart('/');
             string appRoot = AppDomain.CurrentDomain.BaseDirectory;
 
-            // --- HTML ---
+            // HTML
             if (string.IsNullOrEmpty(url) || url == "flightoverlay.html")
             {
                 string htmlPath = Path.Combine(appRoot, "FlightOverlay.html");
@@ -85,7 +81,7 @@ namespace PassengerWPF
                 return;
             }
 
-            // --- JSON Daten ---
+            // JSON Daten
             if (url == "data")
             {
                 var overlay = ConfigService.Current.Paths.Overlay;
@@ -93,25 +89,33 @@ namespace PassengerWPF
 
                 var data = new
                 {
-                    ShowFlightData = overlay.ShowFlightData,
-                    ShowMap = overlay.ShowMap,
-                    ShowPassenger = overlay.ShowPassengerList,
-                    ShowBoarding = overlay.ShowBoarding,
+                    // Panel Flags
+                    ShowFlightData = FlightDataOverlayControl.ShowFlightDataStatic,
+                    ShowMap = FlightDataOverlayControl.ShowMapStatic,
+                    ShowPassenger = FlightDataOverlayControl.ShowPassengerStatic,
+                    ShowBoarding = FlightDataOverlayControl.ShowBoardingStatic,
                     RotationInterval = overlay.RotationIntervalSeconds,
 
-                    altitude = FlightDataOverlayControl.CurrentAltitude,
-                    speed = FlightDataOverlayControl.CurrentSpeed,
-                    heading = FlightDataOverlayControl.CurrentHeading,
-                    latitude = FlightDataOverlayControl.CurrentLat,
-                    longitude = FlightDataOverlayControl.CurrentLon,
-                    vSpeed = FlightDataOverlayControl.VSpeed,
+                    // Automatische Flugdaten, nur wenn Flag true
+                    altitude = overlay.ShowAltitude ? FlightDataOverlayControl.CurrentAltitude : (double?)null,
+                    speed = overlay.ShowSpeed ? FlightDataOverlayControl.CurrentSpeed : (double?)null,
+                    heading = overlay.ShowHeading ? FlightDataOverlayControl.CurrentHeading : (double?)null,
+                    latitude = overlay.ShowPosition ? FlightDataOverlayControl.CurrentLat : (double?)null,
+                    longitude = overlay.ShowPosition ? FlightDataOverlayControl.CurrentLon : (double?)null,
+                    vSpeed = overlay.ShowVSpeed ? FlightDataOverlayControl.VSpeed : (double?)null,
 
-                    // Wenn Checkbox nicht gesetzt, wird leerer String gesendet
-                    dep = FlightDataOverlayControl.ShowManualDepStatic ? FlightDataOverlayControl.DepValueStatic ?? "" : "",
-                    arr = FlightDataOverlayControl.ShowManualArrStatic ? FlightDataOverlayControl.ArrValueStatic ?? "" : "",
-                    aircraftType = FlightDataOverlayControl.ShowManualAircraftStatic ? FlightDataOverlayControl.AircraftTypeValueStatic ?? "" : "",
+                    ShowAltitude = overlay.ShowAltitude,
+                    ShowSpeed = overlay.ShowSpeed,
+                    ShowHeading = overlay.ShowHeading,
+                    ShowVSpeed = overlay.ShowVSpeed,
+                    ShowPosition = overlay.ShowPosition,
 
-                    fps = 0,
+                    // Manuelle Werte nur, wenn Flag gesetzt
+                    aircraftType = FlightDataOverlayControl.ShowManualAircraftStatic ? FlightDataOverlayControl.AircraftTypeValueStatic : "",
+                    dep = FlightDataOverlayControl.ShowManualDepStatic ? FlightDataOverlayControl.DepValueStatic : "",
+                    arr = FlightDataOverlayControl.ShowManualArrStatic ? FlightDataOverlayControl.ArrValueStatic : "",
+
+                    // Passagiere
                     passengers = passengerNames
                 };
 
@@ -124,7 +128,7 @@ namespace PassengerWPF
                 return;
             }
 
-            // --- Bilder (Root + stuff) ---
+            // Bilder
             if (url.EndsWith(".png") || url.EndsWith(".jpg") || url.EndsWith(".jpeg"))
             {
                 string imgPath = Path.Combine(appRoot, url.Replace('/', Path.DirectorySeparatorChar));
@@ -142,7 +146,7 @@ namespace PassengerWPF
                 }
             }
 
-            // --- 404 ---
+            // 404
             context.Response.StatusCode = 404;
             context.Response.Close();
         }

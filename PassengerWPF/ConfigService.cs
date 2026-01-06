@@ -32,9 +32,15 @@ namespace PassengerWPF
         public bool ShowPosition { get; set; } = true;
         public bool ShowVSpeed { get; set; } = true;
 
+        // NEU: Flags für Zeilen ein-/ausblenden
+        public bool ShowAircraftType { get; set; } = true;
+        public bool ShowDeparture { get; set; } = true;
+        public bool ShowArrival { get; set; } = true;
+
         // Flight Info
         public string Departure { get; set; } = "";
         public string Arrival { get; set; } = "";
+        public string AircraftType { get; set; } = "";
 
         // Webserver
         public int ServerPort { get; set; } = 8080;
@@ -43,6 +49,7 @@ namespace PassengerWPF
         public string SimBridgeIp { get; set; } = "localhost";
         public int SimBridgePort { get; set; } = 8380;
     }
+
 
     public class PathsSection
     {

@@ -4,32 +4,104 @@
 <meta charset="UTF-8">
 <title>Flight Overlay</title>
 <style>
-body { margin:0; padding:0; background-color:transparent; font-family:Bahnschrift,sans-serif; font-weight:700; font-size:28px; overflow:hidden; }
-.panel { position: fixed; top:50px; right:10px; width:30vw; height:60vh; padding:15px; box-sizing:border-box; background: rgba(0,0,0,0.5); backdrop-filter: blur(6px); opacity:0; transition: opacity 0.6s ease; overflow-y:auto; border-radius:20px; pointer-events:none; }
-.panel.visible { opacity:1; pointer-events:auto; }
-#overlayContainer { display:flex; flex-direction:column; justify-content:center; align-items:flex-start; line-height:1.2; font-size:20px; height:100%; color:#66CCFF; }
-.overlayLine { margin:3px 0; }
-#overlayContainer h2 { font-size:24px; margin-bottom:8px; text-decoration: underline; }
+body {
+    margin:0; padding:0; background-color:transparent;
+    font-family: "Consolas","Courier New",monospace;
+    font-weight:400;
+    font-size:12px;
+    overflow:hidden;
+    color:#E0E0E0;
+    text-shadow: 0 0 3px rgba(0,0,0,0.7);
+}
+.panel {
+    position: fixed;
+    top: 50px;
+    right: 10px;
+    width: 16vw;
+    height: 70vh;
+    padding: 15px;
+    box-sizing: border-box;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(6px);
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    overflow-y: auto;
+    border-radius: 20px;
+    pointer-events: none;
+}
+.panel.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Flugdaten */
+#overlayContainer {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    line-height:1.2;
+    font-size:12px;
+}
+.overlayLine { 
+    margin:2px 0; 
+    display:flex; 
+    justify-content: space-between; 
+}
+#overlayContainer h2 {
+    font-size:14px;
+    margin-bottom:6px;
+    text-decoration: underline;
+    font-weight:500;
+}
+
+/* Passagierliste */
+#passengerListContainer h2 {
+    font-size:14px;
+    margin-bottom:4px;
+    text-decoration: underline;
+    font-weight:500;
+}
+pre#passengerList {
+    margin:0; 
+    white-space:pre-wrap; 
+    font-family:"Consolas","Courier New",monospace; 
+    font-size:12px;
+}
+
+/* Map & SeatMap */
 #map { width:100%; height:100%; border-radius:20px; }
 #seatMapPanel img { max-width:100%; max-height:100%; display:block; margin:auto; border-radius:20px; }
+
+/* Debug Panel */
+#debugPanel {
+    top:10px;
+    right:10px;
+    width:auto; height:auto; padding:6px;
+    background:rgba(0,0,0,0.6);
+    font-size:11px; opacity:1;
+    pointer-events:none; border-radius:8px;
+}
 </style>
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 <script src="https://rawcdn.githack.com/bbecquet/Leaflet.RotatedMarker/master/leaflet.rotatedMarker.js"></script>
 </head>
 <body>
 
+<!-- Panels -->
 <div class="panel" id="flightDataPanel">
     <div id="overlayContainer">
         <h2>Flugdaten</h2>
-        <div class="overlayLine" id="aircraftType">---</div>
-        <div class="overlayLine" id="dep">---</div>
-        <div class="overlayLine" id="arr">---</div>
-        <div class="overlayLine" id="altitude">---</div>
-        <div class="overlayLine" id="groundSpeed">---</div>
-        <div class="overlayLine" id="heading">---</div>
-        <div class="overlayLine" id="vSpeed">---</div>
-        <div class="overlayLine" id="coordinates">---</div>
+        <div class="overlayLine" id="aircraftTypeLine"><span>Aircraft:</span><span id="aircraftType">---</span></div>
+        <div class="overlayLine" id="depLine"><span>DEP:</span><span id="dep">---</span></div>
+        <div class="overlayLine" id="arrLine"><span>ARR:</span><span id="arr">---</span></div>
+        <div class="overlayLine" id="altitudeLine"><span>Altitude:</span><span id="altitude">---</span></div>
+        <div class="overlayLine" id="groundSpeedLine"><span>Speed:</span><span id="groundSpeed">---</span></div>
+        <div class="overlayLine" id="headingLine"><span>Heading:</span><span id="heading">---</span></div>
+        <div class="overlayLine" id="vSpeedLine"><span>VSpeed:</span><span id="vSpeed">---</span></div>
+        <div class="overlayLine" id="coordinatesLine"><span>Coords:</span><span id="coordinates">---</span></div>
     </div>
 </div>
 
@@ -38,27 +110,39 @@ body { margin:0; padding:0; background-color:transparent; font-family:Bahnschrif
 </div>
 
 <div class="panel" id="passengerPanel">
-    <div id="passengerList">Lade Passagierliste...</div>
+    <div id="passengerListContainer">
+        <h2>Passagiere:</h2>
+        <pre id="passengerList">Lade Passagierliste...</pre>
+    </div>
 </div>
 
 <div class="panel" id="seatMapPanel">
     <img src="stuff/boarding_render.png" alt="Seat Map"/>
 </div>
 
+<!-- Debug Panel -->
+<div class="panel" id="debugPanel">
+    <span id="debugText">Panel: -, Intervall: -ms</span>
+</div>
+
 <script>
 const SIMBRIDGE_URL = "http://localhost:8080/";
 let panels = [];
 let currentPanel = 0;
-let rotationInterval = 5000;
-let panelsInitialized = false;
-let rotationStarted = false;
+let rotationTimer = null;
+let rotationInterval = 4000; // Default, wird überschrieben
 
 // Leaflet Map
 const map = L.map('map',{zoomControl:true}).setView([48,11],5);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
-const planeIcon = L.icon({ iconUrl:'airplane_trans.png', iconSize:[60,31], iconAnchor:[30,15] });
+const planeIcon = L.icon({ 
+    iconUrl: new URL('./stuff/airplane_trans.png', location.href).href, 
+    iconSize:[60,31], iconAnchor:[30,15] 
+});
 let planeMarker = null;
 let currentPos=[48,11], targetPos=[48,11], heading=0, animating=false;
+
+// OpenStreetMap Tiles
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
 
 // --- Daten abrufen ---
 async function getData(){
@@ -66,60 +150,91 @@ async function getData(){
         const res = await fetch(SIMBRIDGE_URL+'data');
         const data = await res.json();
 
-        rotationInterval = data.RotationInterval * 1000;
+        // Rotation Intervall übernehmen
+        if(data.RotationInterval && !isNaN(data.RotationInterval)){
+            rotationInterval = data.RotationInterval*1000;
+        }
 
-        // Panels nur einmal initialisieren
-        if(!panelsInitialized){
-            if(data.ShowFlightData) panels.push('flightDataPanel');
-            if(data.ShowMap)        panels.push('mapPanel');
-            if(data.ShowPassenger) panels.push('passengerPanel');
-            if(data.ShowBoarding)  panels.push('seatMapPanel');
+        // Panels synchronisieren
+        const newPanels = [];
+        if(data.ShowFlightData) newPanels.push('flightDataPanel');
+        if(data.ShowMap)        newPanels.push('mapPanel');
+        if(data.ShowPassenger)  newPanels.push('passengerPanel');
+        if(data.ShowBoarding)   newPanels.push('seatMapPanel');
 
-            if(panels.length > 0){
-                panels.forEach(id => document.getElementById(id).classList.remove('visible'));
-                currentPanel = 0;
+        // Panels aktualisieren, falls Änderung
+        let changed = panels.join(",") !== newPanels.join(",");
+        panels = newPanels;
+
+        if(changed){
+            currentPanel = 0;
+            ['flightDataPanel','mapPanel','passengerPanel','seatMapPanel']
+                .forEach(id => document.getElementById(id).classList.remove('visible'));
+            if(panels.length>0){
                 document.getElementById(panels[0]).classList.add('visible');
             }
 
-            panelsInitialized = true;
-
-            // Rotation starten
-            if(!rotationStarted){
-                setTimeout(rotatePanels, rotationInterval);
-                rotationStarted = true;
-            }
+            // Rotation neu starten
+            if(rotationTimer) clearTimeout(rotationTimer);
+            if(panels.length>1) rotationTimer = setTimeout(rotatePanels, rotationInterval);
         }
 
-        // Flugdaten aktualisieren
-        document.getElementById("aircraftType").innerText = "Aircraft: "+data.aircraftType;
-        document.getElementById("dep").innerText = "DEP: "+data.dep;
-        document.getElementById("arr").innerText = "ARR: "+data.arr;
-        document.getElementById("altitude").innerText = "Altitude: "+data.altitude.toFixed(0);
-        document.getElementById("groundSpeed").innerText = "GroundSpeed: "+data.speed.toFixed(0);
-        document.getElementById("heading").innerText = "Heading: "+data.heading.toFixed(0);
-        document.getElementById("vSpeed").innerText = "VerticalSpeed: "+data.vSpeed.toFixed(0);
-        document.getElementById("coordinates").innerText = "Coords: "+data.latitude.toFixed(6)+", "+data.longitude.toFixed(6);
+        // Flugdaten anzeigen, nur wenn Werte vorhanden
+        document.getElementById("aircraftType").innerText = data.aircraftType || "---";
+        document.getElementById("dep").innerText = data.dep || "---";
+        document.getElementById("arr").innerText = data.arr || "---";
+        document.getElementById("altitude").innerText = data.altitude!=null ? data.altitude.toFixed(0) : "---";
+        document.getElementById("groundSpeed").innerText = data.speed!=null ? data.speed.toFixed(0) : "---";
+        document.getElementById("heading").innerText = data.heading!=null ? data.heading.toFixed(0) : "---";
+        document.getElementById("vSpeed").innerText = data.vSpeed!=null ? data.vSpeed.toFixed(0) : "---";
+        document.getElementById("coordinates").innerText = (data.latitude!=null && data.longitude!=null) ? data.latitude.toFixed(6)+", "+data.longitude.toFixed(6) : "---";
+
+        // Zeilen sichtbar/nicht sichtbar
+        document.getElementById("aircraftTypeLine").style.display = data.aircraftType ? "flex" : "none";
+        document.getElementById("depLine").style.display = data.dep ? "flex" : "none";
+        document.getElementById("arrLine").style.display = data.arr ? "flex" : "none";
+        document.getElementById("altitudeLine").style.display = data.ShowAltitude ? "flex" : "none";
+        document.getElementById("groundSpeedLine").style.display = data.ShowSpeed ? "flex" : "none";
+        document.getElementById("headingLine").style.display = data.ShowHeading ? "flex" : "none";
+        document.getElementById("vSpeedLine").style.display = data.ShowVSpeed ? "flex" : "none";
+        document.getElementById("coordinatesLine").style.display = data.ShowPosition ? "flex" : "none";
 
         // Passagiere
-        if(data.passengers) document.getElementById("passengerList").innerText = data.passengers.join("\n");
+        document.getElementById("passengerList").innerText = data.passengers?.join("\n") || "";
 
-        // Seat Map reload
-        if(panels.includes('seatMapPanel')){
-            const img = document.querySelector('#seatMapPanel img');
-            img.src = 'stuff/boarding_render.png?t=' + new Date().getTime();
-        }
-
-        // Map aktualisieren
-        targetPos = [data.latitude,data.longitude];
-        heading = data.heading;
-        if(!animating) animatePlane();
+        // Map-Animation
+        targetPos = [data.latitude||currentPos[0], data.longitude||currentPos[1]];
+        heading = data.heading || 0;
+        if(!animating && panels[currentPanel]==='mapPanel') animatePlane();
 
     } catch(err){ console.log("Fehler beim Abrufen der Daten",err); }
 }
 
-setInterval(getData,500);
+// Daten 1x/Sekunde abrufen
+setInterval(getData,1000);
 
-// --- Plane Animation ---
+// --- Panel Rotation ---
+function rotatePanels(){
+    if(panels.length <= 1){
+        rotationTimer = null;
+        updateDebug();
+        return;
+    }
+
+    document.getElementById(panels[currentPanel]).classList.remove('visible');
+    currentPanel = (currentPanel+1)%panels.length;
+    const panelId = panels[currentPanel];
+    document.getElementById(panelId).classList.add('visible');
+
+    // Map/Sitzplan spezielle Aktionen
+    if(panelId==='mapPanel'){ setTimeout(()=>{ map.invalidateSize(); map.setView(currentPos,map.getZoom(),{animate:false}); },100);}
+    if(panelId==='seatMapPanel'){ const img = document.getElementById('seatMapPanel').querySelector('img'); if(img) img.src='stuff/boarding_render.png?t='+Date.now();}
+
+    updateDebug();
+    rotationTimer = setTimeout(rotatePanels, rotationInterval);
+}
+
+// --- Flugzeug Animation ---
 function animatePlane(){
     animating=true;
     function step(){
@@ -137,37 +252,20 @@ function animatePlane(){
         }
 
         map.setView(currentPos,map.getZoom(),{animate:false});
-
         if(Math.abs(dx)>0.00001 || Math.abs(dy)>0.00001) requestAnimationFrame(step);
         else animating=false;
     }
     requestAnimationFrame(step);
 }
 
-// --- Panel Rotation ---
-function rotatePanels(){
-    if(panels.length===0) return;
-    panels.forEach(id => document.getElementById(id).classList.remove('visible'));
-    currentPanel = (currentPanel+1) % panels.length;
-    const panelId = panels[currentPanel];
-    document.getElementById(panelId).classList.add('visible');
-
-    // Map sichtbar -> Leaflet neu rendern
-    if(panelId === 'mapPanel'){
-        setTimeout(() => {
-            map.invalidateSize();
-            map.setView(currentPos, map.getZoom(), {animate:false});
-            if(!planeMarker){
-                planeMarker = L.marker(currentPos, {icon:planeIcon, rotationAngle:heading, rotationOrigin:"center"}).addTo(map);
-            } else {
-                planeMarker.setLatLng(currentPos);
-                planeMarker.setRotationAngle(heading);
-            }
-        }, 100);
-    }
-
-    setTimeout(rotatePanels, rotationInterval);
+// --- Debug Panel ---
+function updateDebug(){
+    const panelName = panels.length>0 ? panels[currentPanel] : '-';
+    document.getElementById('debugText').innerText = `Panel: ${panelName}, Intervall: ${rotationInterval}ms`;
 }
+
+// Initiales Debug Update
+updateDebug();
 </script>
 </body>
 </html>

@@ -43,6 +43,12 @@ namespace PassengerWPF
         // ===============================
         // Statische Getter für WebServer
         // ===============================
+
+        public static bool ShowFlightDataStatic { get; private set; }
+        public static bool ShowMapStatic { get; private set; }
+        public static bool ShowPassengerStatic { get; private set; }
+        public static bool ShowBoardingStatic { get; private set; }
+
         public static bool ShowManualAircraftStatic { get; private set; } = false;
         public static bool ShowManualDepStatic { get; private set; } = false;
         public static bool ShowManualArrStatic { get; private set; } = false;
@@ -70,15 +76,17 @@ namespace PassengerWPF
             };
             rotationTimer.Tick += (s, e) => RotatePages();
 
+            // --- Unterbaum direkt sichtbar, wenn Häkchen gesetzt ---
+            FlightDataMenu.Visibility = (ChkFlightData.IsChecked == true) ? Visibility.Visible : Visibility.Collapsed;
+
             // --- Event-Handler für Flugdaten-Untermenü ---
-            ChkFlightData.Checked += ChkFlightData_Checked;
-            ChkFlightData.Unchecked += ChkFlightData_Unchecked;
+            ChkFlightData.Checked += (s, e) => FlightDataMenu.Visibility = Visibility.Visible;
+            ChkFlightData.Unchecked += (s, e) => FlightDataMenu.Visibility = Visibility.Collapsed;
 
             // --- Passagiere initial in Queue ---
             foreach (var p in PassengerStore.Passengers)
                 passengerQueue.Enqueue(p);
 
-            // Neue Passagiere automatisch enqueue
             PassengerStore.Passengers.CollectionChanged += (s, e) =>
             {
                 if (e.NewItems != null)
@@ -107,21 +115,6 @@ namespace PassengerWPF
         private void FlightDataOverlayControl_Loaded(object sender, RoutedEventArgs e)
         {
             StartService();
-        }
-
-        // ===============================
-        // Checkbox-Handler für Untermenü
-        // ===============================
-        private void ChkFlightData_Checked(object sender, RoutedEventArgs e)
-        {
-            if (FlightDataMenu != null)
-                FlightDataMenu.Visibility = Visibility.Visible;
-        }
-
-        private void ChkFlightData_Unchecked(object sender, RoutedEventArgs e)
-        {
-            if (FlightDataMenu != null)
-                FlightDataMenu.Visibility = Visibility.Collapsed;
         }
 
         // ===============================
@@ -185,6 +178,11 @@ namespace PassengerWPF
 
         private async Task UpdateFlightDataAsync()
         {
+            ShowFlightDataStatic = ChkFlightData?.IsChecked == true;
+            ShowMapStatic = ChkMap?.IsChecked == true;
+            ShowPassengerStatic = ChkPassenger?.IsChecked == true;
+            ShowBoardingStatic = ChkBoarding?.IsChecked == true;
+
             try
             {
                 if (simconnect != null && simconnect.IsConnected)

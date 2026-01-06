@@ -1,42 +1,41 @@
-﻿using System;
+﻿using SimConnect.NET;
+using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Media;
+using System.Windows.Shapes;
+// Alias für Path, um Konflikte mit System.Windows.Shapes.Path zu vermeiden
+using IOPath = System.IO.Path;
 
 namespace PassengerWPF
 {
     public partial class MainWindow : Window
     {
+        // SimConnectClient aus SimConnect.NET
+        private SimConnectClient simconnect;
+
+        // Datei für den letzten Flug
+        private readonly string lastFlightFile = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "last_flight.txt");
+
         public MainWindow()
         {
             InitializeComponent();
+            // Timestamp vom letzten Flug aus Datei setzen
+            TxtPassengerTimestampTab.Text = LoadLastFlightTimestamp();
+
             InitializeStartTab(); // Start-Tab erzeugen
         }
 
         #region Menu Actions
 
-        private void OpenLiveBoarding(object sender, RoutedEventArgs e)
-        {
-            OpenTab("Live Boarding", () => new LiveBoardingControl());
-        }
-
-        private void OpenCatering(object sender, RoutedEventArgs e)
-        {
-            OpenTab("Catering", () => new CateringControl());
-        }
-
-        private void OpenAvatarMapping(object sender, RoutedEventArgs e)
-        {
-            OpenTab("Avatar Mapping", () => new AvatarMappingControl());
-        }
-
-        private void OpenFrequentFlyer(object sender, RoutedEventArgs e)
-        {
-            OpenTab("Vielflieger", () => new FrequentFlyerControl());
-        }
-
+        private void OpenLiveBoarding(object sender, RoutedEventArgs e) => OpenTab("Live Boarding", () => new LiveBoardingControl());
+        private void OpenCatering(object sender, RoutedEventArgs e) => OpenTab("Catering", () => new CateringControl());
+        private void OpenAvatarMapping(object sender, RoutedEventArgs e) => OpenTab("Avatar Mapping", () => new AvatarMappingControl());
+        private void OpenFrequentFlyer(object sender, RoutedEventArgs e) => OpenTab("Vielflieger", () => new FrequentFlyerControl());
         private void OpenSettings(object sender, RoutedEventArgs e)
         {
             var win = new SettingsWindow { Owner = this };
@@ -44,7 +43,6 @@ namespace PassengerWPF
         }
         private void OpenObsOverlayTab(object sender, RoutedEventArgs e)
         {
-            // Prüfen, ob Tab schon existiert
             foreach (TabItem tab in MainTabs.Items)
             {
                 if ((string)tab.Header == "Overlay / FlightData")
@@ -54,14 +52,11 @@ namespace PassengerWPF
                 }
             }
 
-            // Neues Tab erstellen
             var overlayTab = new TabItem { Header = "Overlay / FlightData" };
-            var overlayControl = new FlightDataOverlayControl(); // Schritt 2
-            overlayTab.Content = overlayControl;
+            overlayTab.Content = new FlightDataOverlayControl();
             MainTabs.Items.Add(overlayTab);
             MainTabs.SelectedItem = overlayTab;
         }
-
 
         private void NewFlight_Click(object sender, RoutedEventArgs e)
         {
@@ -71,15 +66,16 @@ namespace PassengerWPF
 
             if (result != MessageBoxResult.Yes) return;
 
-            // PassengerData leeren
+            // PassengerData zurücksetzen
             string passengerPath = ConfigService.Current.Csv.PassengerData;
             if (File.Exists(passengerPath))
                 File.WriteAllText(passengerPath, "Name,Sitzplatz,Avatar,Order1,Order2,Order3,Order4");
 
-            // 👉 LastFlightIds zurücksetzen
+            // LastFlightIds zurücksetzen
             ResetLastFlightIds();
 
-            // Timestamp aktualisieren
+            // Timestamp speichern
+            SaveLastFlightTimestamp();
             UpdatePassengerDataTimestamp();
 
             MessageBox.Show(
@@ -87,14 +83,12 @@ namespace PassengerWPF
                 "Info", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-
         #endregion
 
         #region Tab Helper
 
         private void OpenTab(string header, Func<UIElement> contentFactory)
         {
-            // Prüfen, ob Tab bereits existiert
             foreach (TabItem tab in MainTabs.Items)
             {
                 if ((string)tab.Header == header)
@@ -104,7 +98,6 @@ namespace PassengerWPF
                 }
             }
 
-            // Neues Tab erstellen
             var newTab = new TabItem
             {
                 Header = header,
@@ -121,13 +114,9 @@ namespace PassengerWPF
 
         private void InitializeStartTab()
         {
-            // Prüfen, ob das Tab schon existiert
             foreach (TabItem existingTab in MainTabs.Items)
-            {
                 if ((string)existingTab.Header == "Flugstatus") return;
-            }
 
-            // Border als Container, um Padding und abgerundete Ecken zu nutzen
             var border = new Border
             {
                 CornerRadius = new CornerRadius(10),
@@ -136,35 +125,87 @@ namespace PassengerWPF
                 Background = new SolidColorBrush(Color.FromRgb(30, 30, 30))
             };
 
-            // StackPanel für vertikale Anordnung
-            var stack = new StackPanel
-            {
-                VerticalAlignment = VerticalAlignment.Top
-            };
+            var stack = new StackPanel { VerticalAlignment = VerticalAlignment.Top };
 
-            // TextBlock für PassengerData-Zeitstempel
-            var txtStatus = new TextBlock
-            {
-                Name = "TxtPassengerTimestampTab",
-                Text = GetPassengerDataTimestamp(),
-                FontSize = 16,
-                Foreground = Brushes.White,
-                Margin = new Thickness(0, 0, 0, 20)
-            };
-            stack.Children.Add(txtStatus);
-
-            // Button für neuen Flug
+          
+            // --- "Neuen Flug starten" Button ---
             var btnNewFlight = new Button
             {
                 Content = "Neuen Flug starten",
-                Width = 180,
+                Width = 250,
                 Height = 45,
                 HorizontalAlignment = HorizontalAlignment.Left,
                 Background = new SolidColorBrush(Color.FromRgb(70, 130, 180)),
-                Foreground = Brushes.White
+                Foreground = Brushes.White,
+                Margin = new Thickness(0, 0, 0, 10)
             };
             btnNewFlight.Click += NewFlight_Click;
             stack.Children.Add(btnNewFlight);
+
+            // --- "Verbindung zu SimConnect prüfen" Button ---
+            var btnCheck = new Button
+            {
+                Content = "Verbindung zu SimConnect prüfen",
+                Width = 250,
+                Height = 45,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Background = new SolidColorBrush(Color.FromRgb(70, 130, 180)),
+                Foreground = Brushes.White,
+                Margin = new Thickness(0, 0, 0, 5)
+            };
+            btnCheck.Click += CheckSimConnectConnection_Click;
+            stack.Children.Add(btnCheck);
+
+            // --- SimConnect Statusanzeige ---
+            var simStack = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 10, 0, 10)
+            };
+
+            var ellipse = new Ellipse
+            {
+                Name = "SimConnectIndicator",
+                Width = 20,
+                Height = 20,
+                Fill = Brushes.Gray,
+                Margin = new Thickness(10, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            simStack.Children.Add(ellipse);
+
+            var txtSim = new TextBlock
+            {
+                Name = "SimConnectStatusText",
+                Text = "SimConnect Status: Unbekannt",
+                FontWeight = FontWeights.Bold,
+                Foreground = Brushes.White,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            simStack.Children.Add(txtSim);
+
+            stack.Children.Add(simStack);
+
+            // --- Bedienungsanleitung ---
+            var instructionBorder = new Border
+            {
+                Background = new SolidColorBrush(Color.FromRgb(50, 50, 50)),
+                CornerRadius = new CornerRadius(5),
+                Padding = new Thickness(10),
+                Margin = new Thickness(0, 20, 0, 0)
+            };
+
+            var instructionText = new TextBlock
+            {
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = Brushes.White
+            };
+            instructionText.Inlines.Add(new Run("⚠ Achtung: "));
+            instructionText.Inlines.Add(new Run("Wenn Sie 'Neuen Flug starten' klicken, werden alle PassengerData zurückgesetzt und der letzte Flugzeitstempel aktualisiert. Bereits vergebene Sitzplatz-IDs werden geleert, sodass neue Passagiere wieder von vorne gezählt werden."));
+
+            instructionBorder.Child = instructionText;
+            stack.Children.Add(instructionBorder);
 
             border.Child = stack;
 
@@ -175,13 +216,11 @@ namespace PassengerWPF
                 IsSelected = true
             };
 
-            MainTabs.Items.Insert(0, tabItem); // Immer an erster Stelle
+            MainTabs.Items.Insert(0, tabItem);
         }
-
 
         private void UpdatePassengerDataTimestamp()
         {
-            // Start-Tab finden
             var tab = MainTabs.Items.OfType<TabItem>()
                         .FirstOrDefault(t => (string)t.Header == "Flugstatus");
             if (tab == null) return;
@@ -196,40 +235,23 @@ namespace PassengerWPF
                               .FirstOrDefault(tb => tb.Name == "TxtPassengerTimestampTab");
 
             if (txtStatus != null)
-            {
-                string path = ConfigService.Current.Csv.PassengerData;
-                if (File.Exists(path))
-                {
-                    var info = new FileInfo(path);
-                    txtStatus.Text = $"Letzter Start eines neuen Fluges: {info.LastWriteTime}";
-                }
-                else
-                {
-                    txtStatus.Text = "PassengerData-Datei existiert nicht.";
-                }
-            }
+                txtStatus.Text = LoadLastFlightTimestamp();
         }
 
         private void ResetLastFlightIds()
         {
-            string path = ConfigService.Current.Csv.BoardingCount; // Pfad zur boarding_count.csv
-
-            if (!File.Exists(path))
-                return;
+            string path = ConfigService.Current.Csv.BoardingCount;
+            if (!File.Exists(path)) return;
 
             var lines = File.ReadAllLines(path).ToList();
-            if (lines.Count <= 1)
-                return;
+            if (lines.Count <= 1) return;
 
-            // Header unverändert lassen
             for (int i = 1; i < lines.Count; i++)
             {
                 var parts = lines[i].Split(',');
-
-                // Erwartetes Format: Name,Count,LastFlightId
                 if (parts.Length >= 3)
                 {
-                    parts[2] = ""; // LastFlightId leeren
+                    parts[2] = "";
                     lines[i] = string.Join(",", parts);
                 }
             }
@@ -237,16 +259,71 @@ namespace PassengerWPF
             File.WriteAllLines(path, lines);
         }
 
-
-        private string GetPassengerDataTimestamp()
+        // ---------------------------
+        // Letzten Flug Timestamp speichern und laden
+        // ---------------------------
+        private void SaveLastFlightTimestamp()
         {
-            string path = ConfigService.Current.Csv.PassengerData;
-            if (File.Exists(path))
+            try
             {
-                var info = new FileInfo(path);
-                return $"Letzter Start eines neuen Fluges: {info.LastWriteTime}";
+                File.WriteAllText(lastFlightFile, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
             }
-            return "PassengerData-Datei existiert nicht.";
+            catch { /* Fehler ignorieren */ }
+        }
+
+        private string LoadLastFlightTimestamp()
+        {
+            try
+            {
+                if (!File.Exists(lastFlightFile))
+                    File.WriteAllText(lastFlightFile, "noch kein Flug gestartet");
+
+                string timestamp = File.ReadAllText(lastFlightFile);
+                return $"Letzter Start eines neuen Fluges: {timestamp}";
+            }
+            catch
+            {
+                return "Letzter Start eines neuen Fluges: ...";
+            }
+        }
+
+        #endregion
+
+        #region SimConnect Check
+
+        private async void CheckSimConnectConnection_Click(object sender, RoutedEventArgs e)
+        {
+            SimConnectStatusText.Text = "Verbindungsstatus: Prüfen...";
+            SimConnectIndicator.Fill = Brushes.Gray;
+
+            try
+            {
+                if (simconnect != null)
+                {
+                    if (simconnect.IsConnected)
+                        simconnect.Dispose();
+                    simconnect = null;
+                }
+
+                simconnect = new SimConnectClient();
+                await simconnect.ConnectAsync();
+
+                if (simconnect.IsConnected)
+                {
+                    SimConnectStatusText.Text = "Verbindung hergestellt ✅";
+                    SimConnectIndicator.Fill = Brushes.LimeGreen;
+                }
+                else
+                {
+                    SimConnectStatusText.Text = "Nicht verbunden ❌";
+                    SimConnectIndicator.Fill = Brushes.Red;
+                }
+            }
+            catch
+            {
+                SimConnectStatusText.Text = "Fehler beim Verbinden ❌";
+                SimConnectIndicator.Fill = Brushes.Red;
+            }
         }
 
         #endregion
