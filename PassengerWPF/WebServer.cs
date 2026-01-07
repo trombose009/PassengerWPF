@@ -89,14 +89,18 @@ namespace PassengerWPF
 
                 var data = new
                 {
+                    // ===============================
                     // Panel Flags
+                    // ===============================
                     ShowFlightData = FlightDataOverlayControl.ShowFlightDataStatic,
                     ShowMap = FlightDataOverlayControl.ShowMapStatic,
                     ShowPassenger = FlightDataOverlayControl.ShowPassengerStatic,
                     ShowBoarding = FlightDataOverlayControl.ShowBoardingStatic,
                     RotationInterval = overlay.RotationIntervalSeconds,
 
-                    // Automatische Flugdaten, nur wenn Flag true
+                    // ===============================
+                    // Automatische Flugdaten (nur wenn Flag true)
+                    // ===============================
                     altitude = overlay.ShowAltitude ? FlightDataOverlayControl.CurrentAltitude : (double?)null,
                     speed = overlay.ShowSpeed ? FlightDataOverlayControl.CurrentSpeed : (double?)null,
                     heading = overlay.ShowHeading ? FlightDataOverlayControl.CurrentHeading : (double?)null,
@@ -104,28 +108,39 @@ namespace PassengerWPF
                     longitude = overlay.ShowPosition ? FlightDataOverlayControl.CurrentLon : (double?)null,
                     vSpeed = overlay.ShowVSpeed ? FlightDataOverlayControl.VSpeed : (double?)null,
 
-                    // 👇 KOPIERTE FLUGDATEN (NEU)
+                    // ===============================
+                    // Kopierte Flugdaten (immer vorhanden, Sichtbarkeit über Flag)
+                    // ===============================
                     copyAltitude = FlightDataOverlayControl.CurrentAltitude,
                     copySpeed = FlightDataOverlayControl.CurrentSpeed,
                     copyHeading = FlightDataOverlayControl.CurrentHeading,
                     copyLatitude = FlightDataOverlayControl.CurrentLat,
                     copyLongitude = FlightDataOverlayControl.CurrentLon,
                     copyVSpeed = FlightDataOverlayControl.VSpeed,
+                    ShowCopyData = FlightDataOverlayControl.ShowCopyDataStatic, // <--- wichtig für Browser
 
+                    // ===============================
+                    // Flags für individuelle Anzeige im Overlay
+                    // ===============================
                     ShowAltitude = overlay.ShowAltitude,
                     ShowSpeed = overlay.ShowSpeed,
                     ShowHeading = overlay.ShowHeading,
                     ShowVSpeed = overlay.ShowVSpeed,
                     ShowPosition = overlay.ShowPosition,
 
-                    // Manuelle Werte nur, wenn Flag gesetzt
+                    // ===============================
+                    // Manuelle Werte (nur wenn Flag gesetzt)
+                    // ===============================
                     aircraftType = FlightDataOverlayControl.ShowManualAircraftStatic ? FlightDataOverlayControl.AircraftTypeValueStatic : "",
                     dep = FlightDataOverlayControl.ShowManualDepStatic ? FlightDataOverlayControl.DepValueStatic : "",
                     arr = FlightDataOverlayControl.ShowManualArrStatic ? FlightDataOverlayControl.ArrValueStatic : "",
 
-                    // Passagiere
+                    // ===============================
+                    // Passagierliste
+                    // ===============================
                     passengers = passengerNames
                 };
+
 
                 string json = JsonSerializer.Serialize(data);
                 byte[] buffer = Encoding.UTF8.GetBytes(json);

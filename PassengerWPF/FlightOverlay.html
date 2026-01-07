@@ -117,15 +117,16 @@ pre#passengerList {
         <div class="overlayLine" id="coordinatesLine"><span>Coords:</span><span id="coordinates">---</span></div>
     </div>
 
-    <!-- Kopierte Flugdaten -->
-    <div id="copyOverlayContainer">
-        <h2>Kopierte Flugdaten</h2>
-        <div class="overlayLine"><span>Altitude Copy:</span><span id="altitudeCopy">---</span></div>
-        <div class="overlayLine"><span>Speed Copy:</span><span id="speedCopy">---</span></div>
-        <div class="overlayLine"><span>Heading Copy:</span><span id="headingCopy">---</span></div>
-        <div class="overlayLine"><span>Coords Copy:</span><span id="coordinatesCopy">---</span></div>
-        <div class="overlayLine"><span>VSpeed Copy:</span><span id="vSpeedCopy">---</span></div>
-    </div>
+  <!-- Kopierte Flugdaten -->
+<div id="copyOverlayContainer">
+    <h2>Kopierte Flugdaten</h2>
+    <div class="overlayLine"><span>Altitude Copy:</span><span id="altitudeCopy">---</span></div>
+    <div class="overlayLine"><span>Speed Copy:</span><span id="speedCopy">---</span></div>
+    <div class="overlayLine"><span>Heading Copy:</span><span id="headingCopy">---</span></div>
+    <div class="overlayLine"><span>Coords Copy:</span><span id="coordinatesCopy">---</span></div>
+    <div class="overlayLine"><span>VSpeed Copy:</span><span id="vSpeedCopy">---</span></div>
+</div>
+
 </div>
 
 <div class="panel" id="mapPanel">
@@ -212,12 +213,14 @@ async function getData(){
         document.getElementById("vSpeed").innerText = data.vSpeed!=null ? data.vSpeed.toFixed(0) : "---";
         document.getElementById("coordinates").innerText = (data.latitude!=null && data.longitude!=null) ? data.latitude.toFixed(6)+", "+data.longitude.toFixed(6) : "---";
 
-        // Kopierte Flugdaten anzeigen
-        document.getElementById("altitudeCopy").innerText = data.copyAltitude!=null ? data.copyAltitude.toFixed(0) : "---";
-        document.getElementById("speedCopy").innerText = data.copySpeed!=null ? data.copySpeed.toFixed(0) : "---";
-        document.getElementById("headingCopy").innerText = data.copyHeading!=null ? data.copyHeading.toFixed(0) : "---";
-        document.getElementById("coordinatesCopy").innerText = (data.copyLatitude!=null && data.copyLongitude!=null) ? data.copyLatitude.toFixed(6)+", "+data.copyLongitude.toFixed(6) : "---";
-        document.getElementById("vSpeedCopy").innerText = data.copyVSpeed!=null ? data.copyVSpeed.toFixed(0) : "---";
+     // Kopierte Flugdaten anzeigen
+document.getElementById("copyOverlayContainer").style.display = data.ShowCopyData ? "block" : "none";
+
+document.getElementById("altitudeCopy").innerText = data.copyAltitude != null ? data.copyAltitude.toFixed(0) : "---";
+document.getElementById("speedCopy").innerText = data.copySpeed != null ? data.copySpeed.toFixed(0) : "---";
+document.getElementById("headingCopy").innerText = data.copyHeading != null ? data.copyHeading.toFixed(0) : "---";
+document.getElementById("coordinatesCopy").innerText = (data.copyLatitude != null && data.copyLongitude != null) ? data.copyLatitude.toFixed(6) + ", " + data.copyLongitude.toFixed(6) : "---";
+document.getElementById("vSpeedCopy").innerText = data.copyVSpeed != null ? data.copyVSpeed.toFixed(0) : "---";
 
         // Zeilen sichtbar/nicht sichtbar
         document.getElementById("aircraftTypeLine").style.display = data.aircraftType ? "flex" : "none";

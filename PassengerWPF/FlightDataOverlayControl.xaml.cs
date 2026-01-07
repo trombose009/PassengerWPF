@@ -47,7 +47,7 @@ namespace PassengerWPF
         public static bool ShowMapStatic { get; private set; }
         public static bool ShowPassengerStatic { get; private set; }
         public static bool ShowBoardingStatic { get; private set; }
-
+        public static bool ShowCopyDataStatic { get; private set; }
         public static bool ShowManualAircraftStatic { get; private set; } = false;
         public static bool ShowManualDepStatic { get; private set; } = false;
         public static bool ShowManualArrStatic { get; private set; } = false;
@@ -62,6 +62,16 @@ namespace PassengerWPF
         public FlightDataOverlayControl()
         {
             InitializeComponent();
+
+            // --- CopyDataPanel Sichtbarkeit beim Start korrekt setzen ---
+            CopyDataPanel.Visibility = (ChkShowCopyData.IsChecked == true)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+            // --- Event für sofortiges Ein-/Ausblenden beim Klick ---
+            ChkShowCopyData.Checked += (s, e) => CopyDataPanel.Visibility = Visibility.Visible;
+            ChkShowCopyData.Unchecked += (s, e) => CopyDataPanel.Visibility = Visibility.Collapsed;
+
             DataContext = this;
 
             Directory.CreateDirectory(stuffPath);
@@ -76,7 +86,9 @@ namespace PassengerWPF
             rotationTimer.Tick += (s, e) => RotatePages();
 
             // --- Unterbaum direkt sichtbar, wenn Häkchen gesetzt ---
-            FlightDataMenu.Visibility = (ChkFlightData.IsChecked == true) ? Visibility.Visible : Visibility.Collapsed;
+            FlightDataMenu.Visibility = (ChkFlightData.IsChecked == true)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
 
             // --- Event-Handler für Flugdaten-Untermenü ---
             ChkFlightData.Checked += (s, e) => FlightDataMenu.Visibility = Visibility.Visible;
@@ -110,6 +122,8 @@ namespace PassengerWPF
             // --- Loaded Event ---
             Loaded += FlightDataOverlayControl_Loaded;
         }
+
+
 
         private void FlightDataOverlayControl_Loaded(object sender, RoutedEventArgs e)
         {
@@ -181,6 +195,7 @@ namespace PassengerWPF
             ShowMapStatic = ChkMap?.IsChecked == true;
             ShowPassengerStatic = ChkPassenger?.IsChecked == true;
             ShowBoardingStatic = ChkBoarding?.IsChecked == true;
+            ShowCopyDataStatic = ChkShowCopyData?.IsChecked == true; // Für WebServer
 
             try
             {
@@ -194,20 +209,16 @@ namespace PassengerWPF
                     VSpeed = await simconnect.SimVars.GetAsync<double>("VERTICAL SPEED", "feet per minute");
                 }
 
-                // ===============================
-                // Update statische Werte für WebServer
-                // ===============================
+                // --- Manuelle Eingaben ---
                 ShowManualAircraftStatic = ChkManualAircraft?.IsChecked == true;
                 ShowManualDepStatic = ChkManualDep?.IsChecked == true;
                 ShowManualArrStatic = ChkManualArr?.IsChecked == true;
 
-                AircraftTypeValueStatic = TxtAircraftType?.Text ?? "B737";
+                AircraftTypeValueStatic = TxtAircraftType?.Text ?? "A320";
                 DepValueStatic = TxtDep?.Text ?? "EDDF";
                 ArrValueStatic = TxtArr?.Text ?? "EDDM";
 
-                // ===============================
-                // Vorschau dynamisch zusammenstellen
-                // ===============================
+                // --- Vorschau dynamisch zusammenstellen ---
                 var sb = new StringBuilder();
 
                 if (ChkShowAltitude.IsChecked == true)
@@ -230,16 +241,14 @@ namespace PassengerWPF
 
                 PreviewTextBlock.Text = sb.ToString();
 
-                // ===============================
-                // Kopie der Flugdaten
-                // ===============================
+                // --- Kopie der Flugdaten ---
                 TxtCopyAltitude.Text = CurrentAltitude.ToString("F0");
                 TxtCopySpeed.Text = CurrentSpeed.ToString("F0");
                 TxtCopyHeading.Text = CurrentHeading.ToString("F0");
                 TxtCopyPosition.Text = $"{CurrentLat:F6}, {CurrentLon:F6}";
                 TxtCopyVSpeed.Text = VSpeed.ToString("F0");
 
-                // Map aktualisieren
+                // --- Map aktualisieren ---
                 if (FlightMapWebView?.CoreWebView2 != null)
                     await FlightMapWebView.CoreWebView2.ExecuteScriptAsync($"updatePlane({CurrentLat}, {CurrentLon});");
             }
@@ -248,6 +257,8 @@ namespace PassengerWPF
                 OverlayLog.Text += $"Fehler beim Abrufen der Flugdaten: {ex.Message}\n";
             }
         }
+
+
 
         // ===============================
         // Overlay-Rotation

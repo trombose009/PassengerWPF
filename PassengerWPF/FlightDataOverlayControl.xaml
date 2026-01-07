@@ -41,6 +41,8 @@
                             <CheckBox x:Name="ChkShowHeading" Content="Heading" IsChecked="True" Foreground="White"/>
                             <CheckBox x:Name="ChkShowPosition" Content="Position" IsChecked="True" Foreground="White"/>
                             <CheckBox x:Name="ChkShowVSpeed" Content="VSpeed" IsChecked="True" Foreground="White"/>
+                            <CheckBox x:Name="ChkShowCopyData" Content="Kopierte Flugdaten anzeigen" IsChecked="True" Foreground="White"/>
+
                         </StackPanel>
 
                         <TextBlock Text="Manuelle Eingaben:" Foreground="White" FontWeight="Bold"/>
@@ -81,27 +83,41 @@
                                    Foreground="LightGreen"/>
 
                         <!-- Kopie der Flugdaten -->
-                        <TextBlock Text="Kopie der Flugdaten" Foreground="LightBlue" FontWeight="Bold" Margin="0,5,0,2"/>
-                        <StackPanel Orientation="Vertical" Margin="0,2">
-                            <StackPanel Orientation="Horizontal" Margin="0,1">
-                                <TextBlock Text="Altitude:" Width="80" Foreground="White"/>
-                                <TextBox x:Name="TxtCopyAltitude" Width="120" IsReadOnly="True"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,1">
-                                <TextBlock Text="Speed:" Width="80" Foreground="White"/>
-                                <TextBox x:Name="TxtCopySpeed" Width="120" IsReadOnly="True"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,1">
-                                <TextBlock Text="Heading:" Width="80" Foreground="White"/>
-                                <TextBox x:Name="TxtCopyHeading" Width="120" IsReadOnly="True"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,1">
-                                <TextBlock Text="Position:" Width="80" Foreground="White"/>
-                                <TextBox x:Name="TxtCopyPosition" Width="220" IsReadOnly="True"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,1">
-                                <TextBlock Text="VSpeed:" Width="80" Foreground="White"/>
-                                <TextBox x:Name="TxtCopyVSpeed" Width="120" IsReadOnly="True"/>
+                        <StackPanel x:Name="CopyDataPanel"
+            Visibility="Visible">
+
+                            <TextBlock Text="Kopie der Flugdaten"
+               Foreground="LightBlue"
+               FontWeight="Bold"
+               Margin="0,5,0,2"/>
+
+                            <StackPanel Orientation="Vertical" Margin="0,2">
+
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="Altitude:" Width="80" Foreground="White"/>
+                                    <TextBox x:Name="TxtCopyAltitude" Width="120" IsReadOnly="True"/>
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="Speed:" Width="80" Foreground="White"/>
+                                    <TextBox x:Name="TxtCopySpeed" Width="120" IsReadOnly="True"/>
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="Heading:" Width="80" Foreground="White"/>
+                                    <TextBox x:Name="TxtCopyHeading" Width="120" IsReadOnly="True"/>
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="Position:" Width="80" Foreground="White"/>
+                                    <TextBox x:Name="TxtCopyPosition" Width="220" IsReadOnly="True"/>
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="VSpeed:" Width="80" Foreground="White"/>
+                                    <TextBox x:Name="TxtCopyVSpeed" Width="120" IsReadOnly="True"/>
+                                </StackPanel>
+
                             </StackPanel>
                         </StackPanel>
                     </StackPanel>
