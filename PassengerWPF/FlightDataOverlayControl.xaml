@@ -7,11 +7,8 @@
     <Grid Margin="0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <!-- Einstellungen -->
             <RowDefinition Height="*"/>
-            <!-- Hauptbereich -->
             <RowDefinition Height="150"/>
-            <!-- Log -->
         </Grid.RowDefinitions>
 
         <!-- Einstellungen: Webserver Port + Rotation -->
@@ -28,9 +25,7 @@
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="200"/>
-                <!-- Kontroll-Checkboxen -->
                 <ColumnDefinition Width="*"/>
-                <!-- Overlay-Panels -->
             </Grid.ColumnDefinitions>
 
             <!-- Kontroll-Checkboxen -->
@@ -69,7 +64,6 @@
                     </StackPanel>
                 </Border>
 
-
                 <CheckBox x:Name="ChkMap" Content="Map" IsChecked="True" Margin="0,0,0,5" Foreground="White"/>
                 <CheckBox x:Name="ChkPassenger" Content="Passagierliste" IsChecked="True" Margin="0,0,0,5" Foreground="White"/>
                 <CheckBox x:Name="ChkBoarding" Content="Seat-Map" IsChecked="True" Margin="0,0,0,5" Foreground="White"/>
@@ -79,11 +73,38 @@
             <Grid Grid.Column="1" Margin="0">
                 <!-- FlightData Panel -->
                 <Border x:Name="FlightDataPanel" Background="#CC000000" Padding="10" Visibility="Visible">
-                    <TextBlock x:Name="PreviewTextBlock"
-                               FontSize="16"
-                               Text="Daten werden geladen..."
-                               TextWrapping="Wrap"
-                               Foreground="LightGreen"/>
+                    <StackPanel>
+                        <TextBlock x:Name="PreviewTextBlock"
+                                   FontSize="16"
+                                   Text="Daten werden geladen..."
+                                   TextWrapping="Wrap"
+                                   Foreground="LightGreen"/>
+
+                        <!-- Kopie der Flugdaten -->
+                        <TextBlock Text="Kopie der Flugdaten" Foreground="LightBlue" FontWeight="Bold" Margin="0,5,0,2"/>
+                        <StackPanel Orientation="Vertical" Margin="0,2">
+                            <StackPanel Orientation="Horizontal" Margin="0,1">
+                                <TextBlock Text="Altitude:" Width="80" Foreground="White"/>
+                                <TextBox x:Name="TxtCopyAltitude" Width="120" IsReadOnly="True"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,1">
+                                <TextBlock Text="Speed:" Width="80" Foreground="White"/>
+                                <TextBox x:Name="TxtCopySpeed" Width="120" IsReadOnly="True"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,1">
+                                <TextBlock Text="Heading:" Width="80" Foreground="White"/>
+                                <TextBox x:Name="TxtCopyHeading" Width="120" IsReadOnly="True"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,1">
+                                <TextBlock Text="Position:" Width="80" Foreground="White"/>
+                                <TextBox x:Name="TxtCopyPosition" Width="220" IsReadOnly="True"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,1">
+                                <TextBlock Text="VSpeed:" Width="80" Foreground="White"/>
+                                <TextBox x:Name="TxtCopyVSpeed" Width="120" IsReadOnly="True"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
                 </Border>
 
                 <!-- Map Panel -->

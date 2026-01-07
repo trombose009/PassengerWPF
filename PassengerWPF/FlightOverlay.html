@@ -55,6 +55,19 @@ body {
     font-weight:500;
 }
 
+/* Kopierte Flugdaten */
+#copyOverlayContainer {
+    margin-top:10px;
+    border-top:1px solid #888;
+    padding-top:6px;
+}
+#copyOverlayContainer h2 {
+    font-size:13px;
+    margin-bottom:4px;
+    font-weight:500;
+    text-decoration: underline;
+}
+
 /* Passagierliste */
 #passengerListContainer h2 {
     font-size:14px;
@@ -102,6 +115,16 @@ pre#passengerList {
         <div class="overlayLine" id="headingLine"><span>Heading:</span><span id="heading">---</span></div>
         <div class="overlayLine" id="vSpeedLine"><span>VSpeed:</span><span id="vSpeed">---</span></div>
         <div class="overlayLine" id="coordinatesLine"><span>Coords:</span><span id="coordinates">---</span></div>
+    </div>
+
+    <!-- Kopierte Flugdaten -->
+    <div id="copyOverlayContainer">
+        <h2>Kopierte Flugdaten</h2>
+        <div class="overlayLine"><span>Altitude Copy:</span><span id="altitudeCopy">---</span></div>
+        <div class="overlayLine"><span>Speed Copy:</span><span id="speedCopy">---</span></div>
+        <div class="overlayLine"><span>Heading Copy:</span><span id="headingCopy">---</span></div>
+        <div class="overlayLine"><span>Coords Copy:</span><span id="coordinatesCopy">---</span></div>
+        <div class="overlayLine"><span>VSpeed Copy:</span><span id="vSpeedCopy">---</span></div>
     </div>
 </div>
 
@@ -179,7 +202,7 @@ async function getData(){
             if(panels.length>1) rotationTimer = setTimeout(rotatePanels, rotationInterval);
         }
 
-        // Flugdaten anzeigen, nur wenn Werte vorhanden
+        // Flugdaten anzeigen
         document.getElementById("aircraftType").innerText = data.aircraftType || "---";
         document.getElementById("dep").innerText = data.dep || "---";
         document.getElementById("arr").innerText = data.arr || "---";
@@ -188,6 +211,13 @@ async function getData(){
         document.getElementById("heading").innerText = data.heading!=null ? data.heading.toFixed(0) : "---";
         document.getElementById("vSpeed").innerText = data.vSpeed!=null ? data.vSpeed.toFixed(0) : "---";
         document.getElementById("coordinates").innerText = (data.latitude!=null && data.longitude!=null) ? data.latitude.toFixed(6)+", "+data.longitude.toFixed(6) : "---";
+
+        // Kopierte Flugdaten anzeigen
+        document.getElementById("altitudeCopy").innerText = data.copyAltitude!=null ? data.copyAltitude.toFixed(0) : "---";
+        document.getElementById("speedCopy").innerText = data.copySpeed!=null ? data.copySpeed.toFixed(0) : "---";
+        document.getElementById("headingCopy").innerText = data.copyHeading!=null ? data.copyHeading.toFixed(0) : "---";
+        document.getElementById("coordinatesCopy").innerText = (data.copyLatitude!=null && data.copyLongitude!=null) ? data.copyLatitude.toFixed(6)+", "+data.copyLongitude.toFixed(6) : "---";
+        document.getElementById("vSpeedCopy").innerText = data.copyVSpeed!=null ? data.copyVSpeed.toFixed(0) : "---";
 
         // Zeilen sichtbar/nicht sichtbar
         document.getElementById("aircraftTypeLine").style.display = data.aircraftType ? "flex" : "none";
@@ -226,7 +256,6 @@ function rotatePanels(){
     const panelId = panels[currentPanel];
     document.getElementById(panelId).classList.add('visible');
 
-    // Map/Sitzplan spezielle Aktionen
     if(panelId==='mapPanel'){ setTimeout(()=>{ map.invalidateSize(); map.setView(currentPos,map.getZoom(),{animate:false}); },100);}
     if(panelId==='seatMapPanel'){ const img = document.getElementById('seatMapPanel').querySelector('img'); if(img) img.src='stuff/boarding_render.png?t='+Date.now();}
 

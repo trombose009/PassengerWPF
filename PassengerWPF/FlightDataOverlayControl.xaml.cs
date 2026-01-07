@@ -43,7 +43,6 @@ namespace PassengerWPF
         // ===============================
         // Statische Getter für WebServer
         // ===============================
-
         public static bool ShowFlightDataStatic { get; private set; }
         public static bool ShowMapStatic { get; private set; }
         public static bool ShowPassengerStatic { get; private set; }
@@ -230,6 +229,15 @@ namespace PassengerWPF
                     sb.AppendLine($"ARR: {TxtArr.Text}");
 
                 PreviewTextBlock.Text = sb.ToString();
+
+                // ===============================
+                // Kopie der Flugdaten
+                // ===============================
+                TxtCopyAltitude.Text = CurrentAltitude.ToString("F0");
+                TxtCopySpeed.Text = CurrentSpeed.ToString("F0");
+                TxtCopyHeading.Text = CurrentHeading.ToString("F0");
+                TxtCopyPosition.Text = $"{CurrentLat:F6}, {CurrentLon:F6}";
+                TxtCopyVSpeed.Text = VSpeed.ToString("F0");
 
                 // Map aktualisieren
                 if (FlightMapWebView?.CoreWebView2 != null)
