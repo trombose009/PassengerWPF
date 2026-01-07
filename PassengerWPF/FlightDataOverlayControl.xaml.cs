@@ -52,6 +52,13 @@ namespace PassengerWPF
         public static bool ShowManualDepStatic { get; private set; } = false;
         public static bool ShowManualArrStatic { get; private set; } = false;
 
+        public static bool ShowCopyAltitudeStatic { get; private set; } = true;
+        public static bool ShowCopySpeedStatic { get; private set; } = true;
+        public static bool ShowCopyHeadingStatic { get; private set; } = true;
+        public static bool ShowCopyPositionStatic { get; private set; } = true;
+        public static bool ShowCopyVSpeedStatic { get; private set; } = true;
+
+
         public static string AircraftTypeValueStatic { get; private set; } = "B737";
         public static string DepValueStatic { get; private set; } = "EDDF";
         public static string ArrValueStatic { get; private set; } = "EDDM";
@@ -68,9 +75,32 @@ namespace PassengerWPF
                 ? Visibility.Visible
                 : Visibility.Collapsed;
 
-            // --- Event für sofortiges Ein-/Ausblenden beim Klick ---
+            // --- Event für sofortiges Ein-/Ausblenden des gesamten Blocks ---
             ChkShowCopyData.Checked += (s, e) => CopyDataPanel.Visibility = Visibility.Visible;
             ChkShowCopyData.Unchecked += (s, e) => CopyDataPanel.Visibility = Visibility.Collapsed;
+
+            // --- Events für einzelne Zeilen ---
+            ChkCopyAltitude.Checked += (s, e) => altitudeCopyLine.Visibility = Visibility.Visible;
+            ChkCopyAltitude.Unchecked += (s, e) => altitudeCopyLine.Visibility = Visibility.Collapsed;
+
+            ChkCopySpeed.Checked += (s, e) => speedCopyLine.Visibility = Visibility.Visible;
+            ChkCopySpeed.Unchecked += (s, e) => speedCopyLine.Visibility = Visibility.Collapsed;
+
+            ChkCopyHeading.Checked += (s, e) => headingCopyLine.Visibility = Visibility.Visible;
+            ChkCopyHeading.Unchecked += (s, e) => headingCopyLine.Visibility = Visibility.Collapsed;
+
+            ChkCopyPosition.Checked += (s, e) => coordinatesCopyLine.Visibility = Visibility.Visible;
+            ChkCopyPosition.Unchecked += (s, e) => coordinatesCopyLine.Visibility = Visibility.Collapsed;
+
+            ChkCopyVSpeed.Checked += (s, e) => vSpeedCopyLine.Visibility = Visibility.Visible;
+            ChkCopyVSpeed.Unchecked += (s, e) => vSpeedCopyLine.Visibility = Visibility.Collapsed;
+
+            // --- Initiale Sichtbarkeit setzen ---
+            altitudeCopyLine.Visibility = ChkCopyAltitude.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+            speedCopyLine.Visibility = ChkCopySpeed.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+            headingCopyLine.Visibility = ChkCopyHeading.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+            coordinatesCopyLine.Visibility = ChkCopyPosition.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+            vSpeedCopyLine.Visibility = ChkCopyVSpeed.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
 
             DataContext = this;
 
@@ -197,6 +227,20 @@ namespace PassengerWPF
             ShowBoardingStatic = ChkBoarding?.IsChecked == true;
             ShowCopyDataStatic = ChkShowCopyData?.IsChecked == true; // Für WebServer
 
+            ShowCopyAltitudeStatic = ChkCopyAltitude?.IsChecked == true;
+            ShowCopySpeedStatic = ChkCopySpeed?.IsChecked == true;
+            ShowCopyHeadingStatic = ChkCopyHeading?.IsChecked == true;
+            ShowCopyPositionStatic = ChkCopyPosition?.IsChecked == true;
+            ShowCopyVSpeedStatic = ChkCopyVSpeed?.IsChecked == true;
+
+
+            // Einzelne Kopie-Zeilen Flags
+            bool showCopyAltitude = ChkCopyAltitude?.IsChecked == true;
+            bool showCopySpeed = ChkCopySpeed?.IsChecked == true;
+            bool showCopyHeading = ChkCopyHeading?.IsChecked == true;
+            bool showCopyPosition = ChkCopyPosition?.IsChecked == true;
+            bool showCopyVSpeed = ChkCopyVSpeed?.IsChecked == true;
+
             try
             {
                 if (simconnect != null && simconnect.IsConnected)
@@ -248,6 +292,13 @@ namespace PassengerWPF
                 TxtCopyPosition.Text = $"{CurrentLat:F6}, {CurrentLon:F6}";
                 TxtCopyVSpeed.Text = VSpeed.ToString("F0");
 
+                // --- Zeilen ein-/ausblenden abhängig von den Checkboxen ---
+                altitudeCopyLine.Visibility = showCopyAltitude ? Visibility.Visible : Visibility.Collapsed;
+                speedCopyLine.Visibility = showCopySpeed ? Visibility.Visible : Visibility.Collapsed;
+                headingCopyLine.Visibility = showCopyHeading ? Visibility.Visible : Visibility.Collapsed;
+                coordinatesCopyLine.Visibility = showCopyPosition ? Visibility.Visible : Visibility.Collapsed;
+                vSpeedCopyLine.Visibility = showCopyVSpeed ? Visibility.Visible : Visibility.Collapsed;
+
                 // --- Map aktualisieren ---
                 if (FlightMapWebView?.CoreWebView2 != null)
                     await FlightMapWebView.CoreWebView2.ExecuteScriptAsync($"updatePlane({CurrentLat}, {CurrentLon});");
@@ -257,6 +308,7 @@ namespace PassengerWPF
                 OverlayLog.Text += $"Fehler beim Abrufen der Flugdaten: {ex.Message}\n";
             }
         }
+
 
 
 

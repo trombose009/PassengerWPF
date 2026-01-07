@@ -6,12 +6,10 @@
 <style>
 body {
     margin:0; padding:0; background-color:transparent;
-    font-family: "Consolas","Courier New",monospace;
-    font-weight:400;
+    font-family:"Consolas","Courier New",monospace;
     font-size:12px;
-    overflow:hidden;
     color:#E0E0E0;
-    text-shadow: 0 0 3px rgba(0,0,0,0.7);
+    text-shadow:0 0 3px rgba(0,0,0,0.7);
 }
 .panel {
     position: fixed;
@@ -35,51 +33,20 @@ body {
 }
 
 /* Flugdaten */
-#overlayContainer {
+#overlayContainer, #copyOverlayContainer {
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
-    align-items: stretch;
-    line-height:1.2;
-    font-size:12px;
+    line-height: 1.2;
 }
 .overlayLine { 
     margin:2px 0; 
     display:flex; 
     justify-content: space-between; 
 }
-#overlayContainer h2 {
-    font-size:14px;
+h2 {
     margin-bottom:6px;
-    text-decoration: underline;
-    font-weight:500;
-}
-
-/* Kopierte Flugdaten */
-#copyOverlayContainer {
-    margin-top:10px;
-    border-top:1px solid #888;
-    padding-top:6px;
-}
-#copyOverlayContainer h2 {
-    font-size:13px;
-    margin-bottom:4px;
     font-weight:500;
     text-decoration: underline;
-}
-
-/* Passagierliste */
-#passengerListContainer h2 {
-    font-size:14px;
-    margin-bottom:4px;
-    text-decoration: underline;
-    font-weight:500;
-}
-pre#passengerList {
-    margin:0; 
-    white-space:pre-wrap; 
-    font-family:"Consolas","Courier New",monospace; 
-    font-size:12px;
 }
 
 /* Map & SeatMap */
@@ -103,43 +70,45 @@ pre#passengerList {
 </head>
 <body>
 
-<!-- Panels -->
+<!-- Flight Data Panel -->
 <div class="panel" id="flightDataPanel">
     <div id="overlayContainer">
         <h2>Flugdaten</h2>
-        <div class="overlayLine" id="aircraftTypeLine"><span>Aircraft:</span><span id="aircraftType">---</span></div>
-        <div class="overlayLine" id="depLine"><span>DEP:</span><span id="dep">---</span></div>
-        <div class="overlayLine" id="arrLine"><span>ARR:</span><span id="arr">---</span></div>
-        <div class="overlayLine" id="altitudeLine"><span>Altitude:</span><span id="altitude">---</span></div>
-        <div class="overlayLine" id="groundSpeedLine"><span>Speed:</span><span id="groundSpeed">---</span></div>
-        <div class="overlayLine" id="headingLine"><span>Heading:</span><span id="heading">---</span></div>
-        <div class="overlayLine" id="vSpeedLine"><span>VSpeed:</span><span id="vSpeed">---</span></div>
-        <div class="overlayLine" id="coordinatesLine"><span>Coords:</span><span id="coordinates">---</span></div>
+        <div class="overlayLine"><span>Aircraft:</span><span id="aircraftType">---</span></div>
+        <div class="overlayLine"><span>DEP:</span><span id="dep">---</span></div>
+        <div class="overlayLine"><span>ARR:</span><span id="arr">---</span></div>
+        <div class="overlayLine"><span>Altitude:</span><span id="altitude">---</span></div>
+        <div class="overlayLine"><span>Speed:</span><span id="groundSpeed">---</span></div>
+        <div class="overlayLine"><span>Heading:</span><span id="heading">---</span></div>
+        <div class="overlayLine"><span>VSpeed:</span><span id="vSpeed">---</span></div>
+        <div class="overlayLine"><span>Coords:</span><span id="coordinates">---</span></div>
     </div>
 
-  <!-- Kopierte Flugdaten -->
-<div id="copyOverlayContainer">
-    <h2>Kopierte Flugdaten</h2>
-    <div class="overlayLine"><span>Altitude Copy:</span><span id="altitudeCopy">---</span></div>
-    <div class="overlayLine"><span>Speed Copy:</span><span id="speedCopy">---</span></div>
-    <div class="overlayLine"><span>Heading Copy:</span><span id="headingCopy">---</span></div>
-    <div class="overlayLine"><span>Coords Copy:</span><span id="coordinatesCopy">---</span></div>
-    <div class="overlayLine"><span>VSpeed Copy:</span><span id="vSpeedCopy">---</span></div>
+    <!-- Kopierte Flugdaten – Jeder Block einzeln -->
+    <div id="copyOverlayContainer">
+        <h2>Kopierte Flugdaten</h2>
+
+        <div class="overlayLine" id="altitudeCopyBlock"><span>Altitude Copy:</span><span id="altitudeCopy">---</span></div>
+        <div class="overlayLine" id="speedCopyBlock"><span>Speed Copy:</span><span id="speedCopy">---</span></div>
+        <div class="overlayLine" id="headingCopyBlock"><span>Heading Copy:</span><span id="headingCopy">---</span></div>
+        <div class="overlayLine" id="coordinatesCopyBlock"><span>Coords Copy:</span><span id="coordinatesCopy">---</span></div>
+        <div class="overlayLine" id="vSpeedCopyBlock"><span>VSpeed Copy:</span><span id="vSpeedCopy">---</span></div>
+
+    </div>
 </div>
 
-</div>
-
+<!-- Map Panel -->
 <div class="panel" id="mapPanel">
     <div id="map"></div>
 </div>
 
+<!-- Passenger Panel -->
 <div class="panel" id="passengerPanel">
-    <div id="passengerListContainer">
-        <h2>Passagiere:</h2>
-        <pre id="passengerList">Lade Passagierliste...</pre>
-    </div>
+    <h2>Passagiere:</h2>
+    <pre id="passengerList">Lade Passagierliste...</pre>
 </div>
 
+<!-- Seat Map Panel -->
 <div class="panel" id="seatMapPanel">
     <img src="stuff/boarding_render.png" alt="Seat Map"/>
 </div>
@@ -151,21 +120,16 @@ pre#passengerList {
 
 <script>
 const SIMBRIDGE_URL = "http://localhost:8080/";
-let panels = [];
-let currentPanel = 0;
-let rotationTimer = null;
-let rotationInterval = 4000; // Default, wird überschrieben
+let panels = [], currentPanel = 0, rotationTimer = null, rotationInterval = 4000;
+let planeMarker = null, currentPos=[48,11], targetPos=[48,11], heading=0, animating=false;
+window.lastData = {}; // speichert die zuletzt empfangenen Daten
 
-// Leaflet Map
+// Leaflet Map Setup
 const map = L.map('map',{zoomControl:true}).setView([48,11],5);
 const planeIcon = L.icon({ 
     iconUrl: new URL('./stuff/airplane_trans.png', location.href).href, 
     iconSize:[60,31], iconAnchor:[30,15] 
 });
-let planeMarker = null;
-let currentPos=[48,11], targetPos=[48,11], heading=0, animating=false;
-
-// OpenStreetMap Tiles
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
 
 // --- Daten abrufen ---
@@ -174,7 +138,9 @@ async function getData(){
         const res = await fetch(SIMBRIDGE_URL+'data');
         const data = await res.json();
 
-        // Rotation Intervall übernehmen
+        window.lastData = data; // speichern für Debug
+
+        // Rotation Interval
         if(data.RotationInterval && !isNaN(data.RotationInterval)){
             rotationInterval = data.RotationInterval*1000;
         }
@@ -186,24 +152,17 @@ async function getData(){
         if(data.ShowPassenger)  newPanels.push('passengerPanel');
         if(data.ShowBoarding)   newPanels.push('seatMapPanel');
 
-        // Panels aktualisieren, falls Änderung
-        let changed = panels.join(",") !== newPanels.join(",");
-        panels = newPanels;
-
-        if(changed){
+        if(panels.join(",") !== newPanels.join(",")){
+            panels = newPanels;
             currentPanel = 0;
             ['flightDataPanel','mapPanel','passengerPanel','seatMapPanel']
                 .forEach(id => document.getElementById(id).classList.remove('visible'));
-            if(panels.length>0){
-                document.getElementById(panels[0]).classList.add('visible');
-            }
-
-            // Rotation neu starten
+            if(panels.length>0) document.getElementById(panels[0]).classList.add('visible');
             if(rotationTimer) clearTimeout(rotationTimer);
             if(panels.length>1) rotationTimer = setTimeout(rotatePanels, rotationInterval);
         }
 
-        // Flugdaten anzeigen
+        // Normale Flugdaten
         document.getElementById("aircraftType").innerText = data.aircraftType || "---";
         document.getElementById("dep").innerText = data.dep || "---";
         document.getElementById("arr").innerText = data.arr || "---";
@@ -213,76 +172,48 @@ async function getData(){
         document.getElementById("vSpeed").innerText = data.vSpeed!=null ? data.vSpeed.toFixed(0) : "---";
         document.getElementById("coordinates").innerText = (data.latitude!=null && data.longitude!=null) ? data.latitude.toFixed(6)+", "+data.longitude.toFixed(6) : "---";
 
-     // Kopierte Flugdaten anzeigen
-document.getElementById("copyOverlayContainer").style.display = data.ShowCopyData ? "block" : "none";
-
-document.getElementById("altitudeCopy").innerText = data.copyAltitude != null ? data.copyAltitude.toFixed(0) : "---";
-document.getElementById("speedCopy").innerText = data.copySpeed != null ? data.copySpeed.toFixed(0) : "---";
-document.getElementById("headingCopy").innerText = data.copyHeading != null ? data.copyHeading.toFixed(0) : "---";
-document.getElementById("coordinatesCopy").innerText = (data.copyLatitude != null && data.copyLongitude != null) ? data.copyLatitude.toFixed(6) + ", " + data.copyLongitude.toFixed(6) : "---";
-document.getElementById("vSpeedCopy").innerText = data.copyVSpeed != null ? data.copyVSpeed.toFixed(0) : "---";
-
-        // Zeilen sichtbar/nicht sichtbar
-        document.getElementById("aircraftTypeLine").style.display = data.aircraftType ? "flex" : "none";
-        document.getElementById("depLine").style.display = data.dep ? "flex" : "none";
-        document.getElementById("arrLine").style.display = data.arr ? "flex" : "none";
-        document.getElementById("altitudeLine").style.display = data.ShowAltitude ? "flex" : "none";
-        document.getElementById("groundSpeedLine").style.display = data.ShowSpeed ? "flex" : "none";
-        document.getElementById("headingLine").style.display = data.ShowHeading ? "flex" : "none";
-        document.getElementById("vSpeedLine").style.display = data.ShowVSpeed ? "flex" : "none";
-        document.getElementById("coordinatesLine").style.display = data.ShowPosition ? "flex" : "none";
+        // Kopierte Flugdaten anzeigen
+        updateCopiedData(data);
 
         // Passagiere
         document.getElementById("passengerList").innerText = data.passengers?.join("\n") || "";
 
-        // Map-Animation
+        // Map Animation
         targetPos = [data.latitude||currentPos[0], data.longitude||currentPos[1]];
         heading = data.heading || 0;
         if(!animating && panels[currentPanel]==='mapPanel') animatePlane();
 
+        // Debug immer aktualisieren
+        updateDebug();
+
     } catch(err){ console.log("Fehler beim Abrufen der Daten",err); }
 }
-
-// Daten 1x/Sekunde abrufen
 setInterval(getData,1000);
 
 // --- Panel Rotation ---
 function rotatePanels(){
-    if(panels.length <= 1){
-        rotationTimer = null;
-        updateDebug();
-        return;
-    }
-
+    if(panels.length<=1){ rotationTimer=null; updateDebug(); return; }
     document.getElementById(panels[currentPanel]).classList.remove('visible');
     currentPanel = (currentPanel+1)%panels.length;
-    const panelId = panels[currentPanel];
-    document.getElementById(panelId).classList.add('visible');
-
-    if(panelId==='mapPanel'){ setTimeout(()=>{ map.invalidateSize(); map.setView(currentPos,map.getZoom(),{animate:false}); },100);}
-    if(panelId==='seatMapPanel'){ const img = document.getElementById('seatMapPanel').querySelector('img'); if(img) img.src='stuff/boarding_render.png?t='+Date.now();}
-
+    document.getElementById(panels[currentPanel]).classList.add('visible');
+    if(panels[currentPanel]==='mapPanel') setTimeout(()=>{ map.invalidateSize(); map.setView(currentPos,map.getZoom(),{animate:false}); },100);
     updateDebug();
     rotationTimer = setTimeout(rotatePanels, rotationInterval);
 }
 
-// --- Flugzeug Animation ---
+// --- Plane Animation ---
 function animatePlane(){
     animating=true;
     function step(){
         const dx = targetPos[0]-currentPos[0];
         const dy = targetPos[1]-currentPos[1];
         const speed = 0.05;
-        currentPos[0]+=dx*speed;
-        currentPos[1]+=dy*speed;
-
+        currentPos[0]+=dx*speed; currentPos[1]+=dy*speed;
         if(!planeMarker){
             planeMarker = L.marker(currentPos,{icon:planeIcon, rotationAngle:heading, rotationOrigin:"center"}).addTo(map);
         } else {
-            planeMarker.setLatLng(currentPos);
-            planeMarker.setRotationAngle(heading);
+            planeMarker.setLatLng(currentPos); planeMarker.setRotationAngle(heading);
         }
-
         map.setView(currentPos,map.getZoom(),{animate:false});
         if(Math.abs(dx)>0.00001 || Math.abs(dy)>0.00001) requestAnimationFrame(step);
         else animating=false;
@@ -290,14 +221,52 @@ function animatePlane(){
     requestAnimationFrame(step);
 }
 
-// --- Debug Panel ---
-function updateDebug(){
-    const panelName = panels.length>0 ? panels[currentPanel] : '-';
-    document.getElementById('debugText').innerText = `Panel: ${panelName}, Intervall: ${rotationInterval}ms`;
+// --- Kopierte Flugdaten zuverlässig anzeigen ---
+function updateCopiedData(data){
+    const copyContainer = document.getElementById("copyOverlayContainer");
+
+    // Gesamten Block steuern
+    if(!data.ShowCopyData){
+        copyContainer.style.display = "none";
+        return;
+    } else {
+        copyContainer.style.display = "block";
+    }
+
+    const copyLines = [
+        {id:"altitudeCopy", value:data.copyAltitude},
+        {id:"speedCopy", value:data.copySpeed},
+        {id:"headingCopy", value:data.copyHeading},
+        {id:"coordinatesCopy", value:(data.copyLatitude!=null && data.copyLongitude!=null) ? data.copyLatitude.toFixed(6)+", "+data.copyLongitude.toFixed(6) : null},
+        {id:"vSpeedCopy", value:data.copyVSpeed}
+    ];
+
+    for(const line of copyLines){
+        const elem = document.getElementById(line.id);
+        elem.parentElement.style.display = "flex";  // immer sichtbar, solange ShowCopyData = true
+        elem.innerText = line.value != null ? (typeof line.value==="number" ? line.value.toFixed(0) : line.value) : "---";
+    }
+
+    copyContainer.querySelector("h2").style.display = "block";
 }
 
-// Initiales Debug Update
+
+// --- Debug: Flags anzeigen ---
+function updateDebug(){
+    const panelName = panels.length>0 ? panels[currentPanel] : '-';
+    const flags = [
+        "ShowCopyData",
+        "ShowCopyAltitude",
+        "ShowCopySpeed",
+        "ShowCopyHeading",
+        "ShowCopyPosition",
+        "ShowCopyVSpeed"
+    ];
+    const flagsText = flags.map(f => `${f}: ${window.lastData[f] !== undefined ? window.lastData[f] : 'n/a'}`).join(", ");
+    document.getElementById('debugText').innerText = `Panel: ${panelName}, Intervall: ${rotationInterval}ms\n${flagsText}`;
+}
 updateDebug();
 </script>
+
 </body>
 </html>
