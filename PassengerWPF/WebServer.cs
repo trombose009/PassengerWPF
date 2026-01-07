@@ -104,6 +104,14 @@ namespace PassengerWPF
                     longitude = overlay.ShowPosition ? FlightDataOverlayControl.CurrentLon : (double?)null,
                     vSpeed = overlay.ShowVSpeed ? FlightDataOverlayControl.VSpeed : (double?)null,
 
+                    // 👇 KOPIERTE FLUGDATEN (NEU)
+                    copyAltitude = FlightDataOverlayControl.CurrentAltitude,
+                    copySpeed = FlightDataOverlayControl.CurrentSpeed,
+                    copyHeading = FlightDataOverlayControl.CurrentHeading,
+                    copyLatitude = FlightDataOverlayControl.CurrentLat,
+                    copyLongitude = FlightDataOverlayControl.CurrentLon,
+                    copyVSpeed = FlightDataOverlayControl.VSpeed,
+
                     ShowAltitude = overlay.ShowAltitude,
                     ShowSpeed = overlay.ShowSpeed,
                     ShowHeading = overlay.ShowHeading,
