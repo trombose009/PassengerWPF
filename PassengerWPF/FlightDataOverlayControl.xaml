@@ -28,23 +28,13 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Kontroll-Checkboxen -->
+            <!-- Kontroll-Checkboxen (ursprüngliche Flugdaten entfernt) -->
             <StackPanel Grid.Column="0" Orientation="Vertical" Margin="10,0,0,0">
                 <CheckBox x:Name="ChkFlightData" Content="Flugdaten" IsChecked="True" Margin="0,0,0,5" Foreground="White"/>
-                <!-- Untermenü für Flugdaten -->
+
+                <!-- Kopierte Flugdaten Checkboxen bleiben -->
                 <Border x:Name="FlightDataMenu" Background="#AA222222" Padding="5" Margin="10,0,0,5" Visibility="Collapsed">
                     <StackPanel>
-                        <TextBlock Text="Anzuzeigende Flugdaten:" Foreground="White" FontWeight="Bold"/>
-                        <StackPanel Orientation="Vertical" Margin="5,2,0,5">
-                            <CheckBox x:Name="ChkShowAltitude" Content="Altitude" IsChecked="True" Foreground="White"/>
-                            <CheckBox x:Name="ChkShowSpeed" Content="Speed" IsChecked="True" Foreground="White"/>
-                            <CheckBox x:Name="ChkShowHeading" Content="Heading" IsChecked="True" Foreground="White"/>
-                            <CheckBox x:Name="ChkShowPosition" Content="Position" IsChecked="True" Foreground="White"/>
-                            <CheckBox x:Name="ChkShowVSpeed" Content="VSpeed" IsChecked="True" Foreground="White"/>
-                            <CheckBox x:Name="ChkShowCopyData" Content="Kopierte Flugdaten anzeigen" IsChecked="True" Foreground="White"/>
-                        </StackPanel>
-
-                        <!-- Neue Checkboxes für einzelne Kopie-Zeilen -->
                         <TextBlock Text="Kopierte Flugdaten einzeln:" Foreground="White" FontWeight="Bold" Margin="0,5,0,2"/>
                         <StackPanel Orientation="Vertical" Margin="5,2,0,5">
                             <CheckBox x:Name="ChkCopyAltitude" Content="Altitude Copy" IsChecked="True" Foreground="White"/>
@@ -80,7 +70,7 @@
                 <CheckBox x:Name="ChkBoarding" Content="Seat-Map" IsChecked="True" Margin="0,0,0,5" Foreground="White"/>
             </StackPanel>
 
-            <!-- Overlay-Panels -->
+            <!-- Overlay-Panels (unverändert) -->
             <Grid Grid.Column="1" Margin="0">
                 <!-- FlightData Panel -->
                 <Border x:Name="FlightDataPanel" Background="#CC000000" Padding="10" Visibility="Visible">

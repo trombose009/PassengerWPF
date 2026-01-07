@@ -47,7 +47,8 @@ namespace PassengerWPF
         public static bool ShowMapStatic { get; private set; }
         public static bool ShowPassengerStatic { get; private set; }
         public static bool ShowBoardingStatic { get; private set; }
-        public static bool ShowCopyDataStatic { get; private set; }
+        public static bool ShowCopyDataStatic { get; private set; } = true; // immer true
+
         public static bool ShowManualAircraftStatic { get; private set; } = false;
         public static bool ShowManualDepStatic { get; private set; } = false;
         public static bool ShowManualArrStatic { get; private set; } = false;
@@ -57,7 +58,6 @@ namespace PassengerWPF
         public static bool ShowCopyHeadingStatic { get; private set; } = true;
         public static bool ShowCopyPositionStatic { get; private set; } = true;
         public static bool ShowCopyVSpeedStatic { get; private set; } = true;
-
 
         public static string AircraftTypeValueStatic { get; private set; } = "B737";
         public static string DepValueStatic { get; private set; } = "EDDF";
@@ -70,16 +70,10 @@ namespace PassengerWPF
         {
             InitializeComponent();
 
-            // --- CopyDataPanel Sichtbarkeit beim Start korrekt setzen ---
-            CopyDataPanel.Visibility = (ChkShowCopyData.IsChecked == true)
-                ? Visibility.Visible
-                : Visibility.Collapsed;
+            // --- CopyDataPanel permanent sichtbar ---
+            CopyDataPanel.Visibility = Visibility.Visible;
 
-            // --- Event für sofortiges Ein-/Ausblenden des gesamten Blocks ---
-            ChkShowCopyData.Checked += (s, e) => CopyDataPanel.Visibility = Visibility.Visible;
-            ChkShowCopyData.Unchecked += (s, e) => CopyDataPanel.Visibility = Visibility.Collapsed;
-
-            // --- Events für einzelne Zeilen ---
+            // --- Events für einzelne Copy-Zeilen ---
             ChkCopyAltitude.Checked += (s, e) => altitudeCopyLine.Visibility = Visibility.Visible;
             ChkCopyAltitude.Unchecked += (s, e) => altitudeCopyLine.Visibility = Visibility.Collapsed;
 
@@ -152,8 +146,6 @@ namespace PassengerWPF
             // --- Loaded Event ---
             Loaded += FlightDataOverlayControl_Loaded;
         }
-
-
 
         private void FlightDataOverlayControl_Loaded(object sender, RoutedEventArgs e)
         {
@@ -228,7 +220,7 @@ namespace PassengerWPF
             ShowMapStatic = ChkMap?.IsChecked == true;
             ShowPassengerStatic = ChkPassenger?.IsChecked == true;
             ShowBoardingStatic = ChkBoarding?.IsChecked == true;
-            ShowCopyDataStatic = ChkShowCopyData?.IsChecked == true;
+            ShowCopyDataStatic = true; // permanent sichtbar
 
             // Einzelne Kopie-Zeilen Flags (für WebServer)
             ShowCopyAltitudeStatic = ChkCopyAltitude?.IsChecked == true;
@@ -268,17 +260,6 @@ namespace PassengerWPF
                 // ===============================
                 var sb = new StringBuilder();
 
-                if (ChkShowAltitude.IsChecked == true)
-                    sb.AppendLine($"Altitude: {CurrentAltitude:F0} ft");
-                if (ChkShowSpeed.IsChecked == true)
-                    sb.AppendLine($"Speed: {CurrentSpeed:F0} kt");
-                if (ChkShowHeading.IsChecked == true)
-                    sb.AppendLine($"Heading: {CurrentHeading:F0}°");
-                if (ChkShowPosition.IsChecked == true)
-                    sb.AppendLine($"Position: {CurrentLat:F6}, {CurrentLon:F6}");
-                if (ChkShowVSpeed.IsChecked == true)
-                    sb.AppendLine($"VSpeed: {VSpeed:F0} ft/min");
-
                 if (ChkManualAircraft.IsChecked == true)
                     sb.AppendLine($"Aircraft Type: {TxtAircraftType.Text}");
                 if (ChkManualDep.IsChecked == true)
@@ -308,10 +289,6 @@ namespace PassengerWPF
                 OverlayLog.Text += $"Fehler beim Abrufen der Flugdaten: {ex.Message}\n";
             }
         }
-
-
-
-
 
         // ===============================
         // Overlay-Rotation
