@@ -117,9 +117,11 @@ namespace PassengerWPF
                     copyLatitude = FlightDataOverlayControl.CurrentLat,
                     copyLongitude = FlightDataOverlayControl.CurrentLon,
                     copyVSpeed = FlightDataOverlayControl.VSpeed,
-                    ShowCopyData = FlightDataOverlayControl.ShowCopyDataStatic, // gesamter Block
+                    ShowCopyData = FlightDataOverlayControl.ShowCopyDataStatic, // Gesamter Block
 
-                    // **Einzel-Flags für kopierte Flugdaten**
+                    // ===============================
+                    // Einzelne Kopie-Zeilen Flags
+                    // ===============================
                     ShowCopyAltitude = FlightDataOverlayControl.ShowCopyAltitudeStatic,
                     ShowCopySpeed = FlightDataOverlayControl.ShowCopySpeedStatic,
                     ShowCopyHeading = FlightDataOverlayControl.ShowCopyHeadingStatic,
@@ -127,7 +129,7 @@ namespace PassengerWPF
                     ShowCopyVSpeed = FlightDataOverlayControl.ShowCopyVSpeedStatic,
 
                     // ===============================
-                    // Sichtbarkeit Flugdaten
+                    // Sichtbarkeit Flugdaten (automatisch)
                     // ===============================
                     ShowAltitude = overlay.ShowAltitude,
                     ShowSpeed = overlay.ShowSpeed,
@@ -156,6 +158,7 @@ namespace PassengerWPF
                 context.Response.OutputStream.Close();
                 return;
             }
+
 
 
             // Bilder

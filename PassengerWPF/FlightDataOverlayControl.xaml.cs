@@ -221,28 +221,27 @@ namespace PassengerWPF
 
         private async Task UpdateFlightDataAsync()
         {
+            // ===============================
+            // Statische Flags für WebServer
+            // ===============================
             ShowFlightDataStatic = ChkFlightData?.IsChecked == true;
             ShowMapStatic = ChkMap?.IsChecked == true;
             ShowPassengerStatic = ChkPassenger?.IsChecked == true;
             ShowBoardingStatic = ChkBoarding?.IsChecked == true;
-            ShowCopyDataStatic = ChkShowCopyData?.IsChecked == true; // Für WebServer
+            ShowCopyDataStatic = ChkShowCopyData?.IsChecked == true;
 
+            // Einzelne Kopie-Zeilen Flags (für WebServer)
             ShowCopyAltitudeStatic = ChkCopyAltitude?.IsChecked == true;
             ShowCopySpeedStatic = ChkCopySpeed?.IsChecked == true;
             ShowCopyHeadingStatic = ChkCopyHeading?.IsChecked == true;
             ShowCopyPositionStatic = ChkCopyPosition?.IsChecked == true;
             ShowCopyVSpeedStatic = ChkCopyVSpeed?.IsChecked == true;
 
-
-            // Einzelne Kopie-Zeilen Flags
-            bool showCopyAltitude = ChkCopyAltitude?.IsChecked == true;
-            bool showCopySpeed = ChkCopySpeed?.IsChecked == true;
-            bool showCopyHeading = ChkCopyHeading?.IsChecked == true;
-            bool showCopyPosition = ChkCopyPosition?.IsChecked == true;
-            bool showCopyVSpeed = ChkCopyVSpeed?.IsChecked == true;
-
             try
             {
+                // ===============================
+                // Live Flugdaten abrufen
+                // ===============================
                 if (simconnect != null && simconnect.IsConnected)
                 {
                     CurrentAltitude = await simconnect.SimVars.GetAsync<double>("PLANE ALTITUDE", "feet");
@@ -253,7 +252,9 @@ namespace PassengerWPF
                     VSpeed = await simconnect.SimVars.GetAsync<double>("VERTICAL SPEED", "feet per minute");
                 }
 
-                // --- Manuelle Eingaben ---
+                // ===============================
+                // Manuelle Eingaben
+                // ===============================
                 ShowManualAircraftStatic = ChkManualAircraft?.IsChecked == true;
                 ShowManualDepStatic = ChkManualDep?.IsChecked == true;
                 ShowManualArrStatic = ChkManualArr?.IsChecked == true;
@@ -262,7 +263,9 @@ namespace PassengerWPF
                 DepValueStatic = TxtDep?.Text ?? "EDDF";
                 ArrValueStatic = TxtArr?.Text ?? "EDDM";
 
-                // --- Vorschau dynamisch zusammenstellen ---
+                // ===============================
+                // Vorschau zusammenstellen
+                // ===============================
                 var sb = new StringBuilder();
 
                 if (ChkShowAltitude.IsChecked == true)
@@ -285,21 +288,18 @@ namespace PassengerWPF
 
                 PreviewTextBlock.Text = sb.ToString();
 
-                // --- Kopie der Flugdaten ---
+                // ===============================
+                // Kopierte Flugdaten setzen (Texboxen)
+                // ===============================
                 TxtCopyAltitude.Text = CurrentAltitude.ToString("F0");
                 TxtCopySpeed.Text = CurrentSpeed.ToString("F0");
                 TxtCopyHeading.Text = CurrentHeading.ToString("F0");
                 TxtCopyPosition.Text = $"{CurrentLat:F6}, {CurrentLon:F6}";
                 TxtCopyVSpeed.Text = VSpeed.ToString("F0");
 
-                // --- Zeilen ein-/ausblenden abhängig von den Checkboxen ---
-                altitudeCopyLine.Visibility = showCopyAltitude ? Visibility.Visible : Visibility.Collapsed;
-                speedCopyLine.Visibility = showCopySpeed ? Visibility.Visible : Visibility.Collapsed;
-                headingCopyLine.Visibility = showCopyHeading ? Visibility.Visible : Visibility.Collapsed;
-                coordinatesCopyLine.Visibility = showCopyPosition ? Visibility.Visible : Visibility.Collapsed;
-                vSpeedCopyLine.Visibility = showCopyVSpeed ? Visibility.Visible : Visibility.Collapsed;
-
-                // --- Map aktualisieren ---
+                // ===============================
+                // Map aktualisieren
+                // ===============================
                 if (FlightMapWebView?.CoreWebView2 != null)
                     await FlightMapWebView.CoreWebView2.ExecuteScriptAsync($"updatePlane({CurrentLat}, {CurrentLon});");
             }
@@ -308,6 +308,7 @@ namespace PassengerWPF
                 OverlayLog.Text += $"Fehler beim Abrufen der Flugdaten: {ex.Message}\n";
             }
         }
+
 
 
 

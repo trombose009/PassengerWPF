@@ -88,11 +88,11 @@ h2 {
     <div id="copyOverlayContainer">
         <h2>Kopierte Flugdaten</h2>
 
-        <div class="overlayLine" id="altitudeCopyBlock"><span>Altitude Copy:</span><span id="altitudeCopy">---</span></div>
-        <div class="overlayLine" id="speedCopyBlock"><span>Speed Copy:</span><span id="speedCopy">---</span></div>
-        <div class="overlayLine" id="headingCopyBlock"><span>Heading Copy:</span><span id="headingCopy">---</span></div>
-        <div class="overlayLine" id="coordinatesCopyBlock"><span>Coords Copy:</span><span id="coordinatesCopy">---</span></div>
-        <div class="overlayLine" id="vSpeedCopyBlock"><span>VSpeed Copy:</span><span id="vSpeedCopy">---</span></div>
+        <div class="overlayLine" id="altitudeCopyLine"><span>Altitude Copy:</span><span id="altitudeCopy">---</span></div>
+        <div class="overlayLine" id="speedCopyLine"><span>Speed Copy:</span><span id="speedCopy">---</span></div>
+        <div class="overlayLine" id="headingCopyLine"><span>Heading Copy:</span><span id="headingCopy">---</span></div>
+        <div class="overlayLine" id="coordinatesCopyLine"><span>Coords Copy:</span><span id="coordinatesCopy">---</span></div>
+        <div class="overlayLine" id="vSpeedCopyLine"><span>VSpeed Copy:</span><span id="vSpeedCopy">---</span></div>
 
     </div>
 </div>
@@ -233,23 +233,21 @@ function updateCopiedData(data){
         copyContainer.style.display = "block";
     }
 
-    const copyLines = [
-        {id:"altitudeCopy", value:data.copyAltitude},
-        {id:"speedCopy", value:data.copySpeed},
-        {id:"headingCopy", value:data.copyHeading},
-        {id:"coordinatesCopy", value:(data.copyLatitude!=null && data.copyLongitude!=null) ? data.copyLatitude.toFixed(6)+", "+data.copyLongitude.toFixed(6) : null},
-        {id:"vSpeedCopy", value:data.copyVSpeed}
+    const copyMap = [
+        {id:"altitudeCopyLine", value:data.copyAltitude, flag:"ShowCopyAltitude"},
+        {id:"speedCopyLine", value:data.copySpeed, flag:"ShowCopySpeed"},
+        {id:"headingCopyLine", value:data.copyHeading, flag:"ShowCopyHeading"},
+        {id:"coordinatesCopyLine", value:(data.copyLatitude!=null && data.copyLongitude!=null) ? data.copyLatitude.toFixed(6)+", "+data.copyLongitude.toFixed(6) : null, flag:"ShowCopyPosition"},
+        {id:"vSpeedCopyLine", value:data.copyVSpeed, flag:"ShowCopyVSpeed"}
     ];
 
-    for(const line of copyLines){
+    copyMap.forEach(line=>{
         const elem = document.getElementById(line.id);
-        elem.parentElement.style.display = "flex";  // immer sichtbar, solange ShowCopyData = true
-        elem.innerText = line.value != null ? (typeof line.value==="number" ? line.value.toFixed(0) : line.value) : "---";
-    }
-
-    copyContainer.querySelector("h2").style.display = "block";
+        if(data[line.flag]) elem.style.display = "flex";
+        else elem.style.display = "none";
+        elem.querySelector("span:last-child").innerText = line.value != null ? (typeof line.value==="number" ? line.value.toFixed(0) : line.value) : "---";
+    });
 }
-
 
 // --- Debug: Flags anzeigen ---
 function updateDebug(){
