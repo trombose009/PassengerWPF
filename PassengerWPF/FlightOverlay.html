@@ -55,7 +55,8 @@ h2 {
 
 /* Debug Panel */
 #debugPanel {
-    top:10px;
+    display: none;
+	top:10px;
     right:10px;
     width:auto; height:auto; padding:6px;
     background:rgba(0,0,0,0.6);
@@ -77,23 +78,15 @@ h2 {
         <div class="overlayLine"><span>Aircraft:</span><span id="aircraftType">---</span></div>
         <div class="overlayLine"><span>DEP:</span><span id="dep">---</span></div>
         <div class="overlayLine"><span>ARR:</span><span id="arr">---</span></div>
-        <div class="overlayLine"><span>Altitude:</span><span id="altitude">---</span></div>
-        <div class="overlayLine"><span>Speed:</span><span id="groundSpeed">---</span></div>
-        <div class="overlayLine"><span>Heading:</span><span id="heading">---</span></div>
-        <div class="overlayLine"><span>VSpeed:</span><span id="vSpeed">---</span></div>
-        <div class="overlayLine"><span>Coords:</span><span id="coordinates">---</span></div>
     </div>
 
     <!-- Kopierte Flugdaten – Jeder Block einzeln -->
     <div id="copyOverlayContainer">
-        <h2>Kopierte Flugdaten</h2>
-
         <div class="overlayLine" id="altitudeCopyLine"><span>Altitude Copy:</span><span id="altitudeCopy">---</span></div>
         <div class="overlayLine" id="speedCopyLine"><span>Speed Copy:</span><span id="speedCopy">---</span></div>
         <div class="overlayLine" id="headingCopyLine"><span>Heading Copy:</span><span id="headingCopy">---</span></div>
         <div class="overlayLine" id="coordinatesCopyLine"><span>Coords Copy:</span><span id="coordinatesCopy">---</span></div>
         <div class="overlayLine" id="vSpeedCopyLine"><span>VSpeed Copy:</span><span id="vSpeedCopy">---</span></div>
-
     </div>
 </div>
 
@@ -132,6 +125,12 @@ const planeIcon = L.icon({
 });
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
 
+// Hilfsfunktion: DOM-sicher Text setzen
+function setText(id, value){
+    const el = document.getElementById(id);
+    if(el) el.innerText = value;
+}
+
 // --- Daten abrufen ---
 async function getData(){
     try{
@@ -162,15 +161,8 @@ async function getData(){
             if(panels.length>1) rotationTimer = setTimeout(rotatePanels, rotationInterval);
         }
 
-        // Normale Flugdaten
-        document.getElementById("aircraftType").innerText = data.aircraftType || "---";
-        document.getElementById("dep").innerText = data.dep || "---";
-        document.getElementById("arr").innerText = data.arr || "---";
-        document.getElementById("altitude").innerText = data.altitude!=null ? data.altitude.toFixed(0) : "---";
-        document.getElementById("groundSpeed").innerText = data.speed!=null ? data.speed.toFixed(0) : "---";
-        document.getElementById("heading").innerText = data.heading!=null ? data.heading.toFixed(0) : "---";
-        document.getElementById("vSpeed").innerText = data.vSpeed!=null ? data.vSpeed.toFixed(0) : "---";
-        document.getElementById("coordinates").innerText = (data.latitude!=null && data.longitude!=null) ? data.latitude.toFixed(6)+", "+data.longitude.toFixed(6) : "---";
+        // Normale / Manuelle Flugdaten
+        updateManualData(data);
 
         // Kopierte Flugdaten anzeigen
         updateCopiedData(data);
@@ -221,32 +213,59 @@ function animatePlane(){
     requestAnimationFrame(step);
 }
 
+// --- Manuelle Flugdaten zuverlässig ein-/ausblenden ---
+function updateManualData(data){
+    const manualMap = [
+        {id:"aircraftType", value:data.aircraftType},
+        {id:"dep", value:data.dep},
+        {id:"arr", value:data.arr}
+    ];
+
+    manualMap.forEach(item=>{
+        const span = document.getElementById(item.id);
+        if(!span) return;
+        const lineDiv = span.parentElement; // <div class="overlayLine">
+
+        const visible = item.value && item.value.trim() !== "";
+        lineDiv.style.display = visible ? "flex" : "none";
+        span.innerText = visible ? item.value : "---";
+    });
+}
+
 // --- Kopierte Flugdaten zuverlässig anzeigen ---
 function updateCopiedData(data){
     const copyContainer = document.getElementById("copyOverlayContainer");
-
-    // Gesamten Block steuern
-    if(!data.ShowCopyData){
-        copyContainer.style.display = "none";
-        return;
-    } else {
-        copyContainer.style.display = "block";
-    }
 
     const copyMap = [
         {id:"altitudeCopyLine", value:data.copyAltitude, flag:"ShowCopyAltitude"},
         {id:"speedCopyLine", value:data.copySpeed, flag:"ShowCopySpeed"},
         {id:"headingCopyLine", value:data.copyHeading, flag:"ShowCopyHeading"},
-        {id:"coordinatesCopyLine", value:(data.copyLatitude!=null && data.copyLongitude!=null) ? data.copyLatitude.toFixed(6)+", "+data.copyLongitude.toFixed(6) : null, flag:"ShowCopyPosition"},
+        {
+            id:"coordinatesCopyLine",
+            value:(data.copyLatitude!=null && data.copyLongitude!=null)
+                ? data.copyLatitude.toFixed(6)+", "+data.copyLongitude.toFixed(6)
+                : null,
+            flag:"ShowCopyPosition"
+        },
         {id:"vSpeedCopyLine", value:data.copyVSpeed, flag:"ShowCopyVSpeed"}
     ];
 
+    let anyVisible = false;
+
     copyMap.forEach(line=>{
         const elem = document.getElementById(line.id);
-        if(data[line.flag]) elem.style.display = "flex";
-        else elem.style.display = "none";
-        elem.querySelector("span:last-child").innerText = line.value != null ? (typeof line.value==="number" ? line.value.toFixed(0) : line.value) : "---";
+        if(!elem) return;
+        const visible = !!data[line.flag];
+        elem.style.display = visible ? "flex" : "none";
+        if(visible) anyVisible = true;
+
+        elem.querySelector("span:last-child").innerText =
+            line.value != null
+                ? (typeof line.value === "number" ? line.value.toFixed(0) : line.value)
+                : "---";
     });
+
+    copyContainer.style.display = anyVisible ? "flex" : "none";
 }
 
 // --- Debug: Flags anzeigen ---

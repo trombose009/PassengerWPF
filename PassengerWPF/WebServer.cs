@@ -87,6 +87,11 @@ namespace PassengerWPF
                 var overlay = ConfigService.Current.Paths.Overlay;
                 var passengerNames = FlightDataOverlayControl.OverlayPassengers.Select(p => p.Name).ToArray();
 
+                // Neue Flags für Aircraft/DEP/ARR Sichtbarkeit
+                bool showAircraft = FlightDataOverlayControl.ShowManualAircraftStatic && !string.IsNullOrEmpty(FlightDataOverlayControl.AircraftTypeValueStatic);
+                bool showDep = FlightDataOverlayControl.ShowManualDepStatic && !string.IsNullOrEmpty(FlightDataOverlayControl.DepValueStatic);
+                bool showArr = FlightDataOverlayControl.ShowManualArrStatic && !string.IsNullOrEmpty(FlightDataOverlayControl.ArrValueStatic);
+
                 var data = new
                 {
                     // ===============================
@@ -119,18 +124,14 @@ namespace PassengerWPF
                     copyVSpeed = FlightDataOverlayControl.VSpeed,
                     ShowCopyData = FlightDataOverlayControl.ShowCopyDataStatic, // Gesamter Block
 
-                    // ===============================
                     // Einzelne Kopie-Zeilen Flags
-                    // ===============================
                     ShowCopyAltitude = FlightDataOverlayControl.ShowCopyAltitudeStatic,
                     ShowCopySpeed = FlightDataOverlayControl.ShowCopySpeedStatic,
                     ShowCopyHeading = FlightDataOverlayControl.ShowCopyHeadingStatic,
                     ShowCopyPosition = FlightDataOverlayControl.ShowCopyPositionStatic,
                     ShowCopyVSpeed = FlightDataOverlayControl.ShowCopyVSpeedStatic,
 
-                    // ===============================
                     // Sichtbarkeit Flugdaten (automatisch)
-                    // ===============================
                     ShowAltitude = overlay.ShowAltitude,
                     ShowSpeed = overlay.ShowSpeed,
                     ShowHeading = overlay.ShowHeading,
@@ -144,6 +145,11 @@ namespace PassengerWPF
                     dep = FlightDataOverlayControl.ShowManualDepStatic ? FlightDataOverlayControl.DepValueStatic : "",
                     arr = FlightDataOverlayControl.ShowManualArrStatic ? FlightDataOverlayControl.ArrValueStatic : "",
 
+                    // Neue Flags für Sichtbarkeit
+                    ShowAircraft = showAircraft,
+                    ShowDep = showDep,
+                    ShowArr = showArr,
+
                     // ===============================
                     // Passagiere
                     // ===============================
@@ -151,15 +157,13 @@ namespace PassengerWPF
                 };
 
                 string json = JsonSerializer.Serialize(data);
-                byte[] buffer = Encoding.UTF8.GetBytes(json);
-                context.Response.ContentLength64 = buffer.Length;
+                byte[] bufferJson = Encoding.UTF8.GetBytes(json);
+                context.Response.ContentLength64 = bufferJson.Length;
                 context.Response.ContentType = "application/json; charset=UTF-8";
-                await context.Response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
+                await context.Response.OutputStream.WriteAsync(bufferJson, 0, bufferJson.Length);
                 context.Response.OutputStream.Close();
                 return;
             }
-
-
 
             // Bilder
             if (url.EndsWith(".png") || url.EndsWith(".jpg") || url.EndsWith(".jpeg"))
@@ -183,5 +187,6 @@ namespace PassengerWPF
             context.Response.StatusCode = 404;
             context.Response.Close();
         }
+
     }
 }
