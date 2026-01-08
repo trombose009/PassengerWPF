@@ -44,10 +44,10 @@ namespace PassengerWPF
                     if (!allSeats.Contains(seat))
                     {
                         // 🧹 Ungültigen Sitz entfernen → wird neu vergeben
-                        File.AppendAllText(
-                            "seat_autorepair.log",
-                            $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | {p.Name} | ungültiger Sitz repariert: {seat}\n"
-                        );
+                      //  File.AppendAllText(
+                       //     "seat_autorepair.log",
+                      //      $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | {p.Name} | ungültiger Sitz repariert: {seat}\n"
+                  //      );
 
                         p.Sitzplatz = null;
                         changed = true;

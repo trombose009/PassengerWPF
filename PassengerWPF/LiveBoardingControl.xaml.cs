@@ -122,10 +122,19 @@ namespace PassengerWPF
 
             timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
             timer.Tick += Timer_Tick;
-            timer.Start();
+
+            // GUI komplett fertig? dann Screenshot schreiben
+            this.Loaded += (s, e) =>
+            {
+                SeatCanvas.UpdateLayout();
+                RenderSeatmapScreenshot(); // einmaliges Initialbild
+                timer.Start();             // Timer erst danach starten
+            };
 
             UpdatePassengerListUI();
         }
+
+
 
         private void LoadConfig()
         {
@@ -286,10 +295,13 @@ namespace PassengerWPF
         {
             try
             {
+                double sourceWidth = SeatCanvas.ActualWidth;
+                double sourceHeight = SeatCanvas.ActualHeight;
+
+                if (sourceWidth <= 0 || sourceHeight <= 0) return;
+
                 double targetWidth = 400;
                 double targetHeight = 900;
-                double sourceWidth = SeatCanvas.Width;
-                double sourceHeight = SeatCanvas.Height;
 
                 var rtb = new RenderTargetBitmap((int)targetWidth, (int)targetHeight, 96, 96, PixelFormats.Pbgra32);
                 var dv = new DrawingVisual();
@@ -299,7 +311,7 @@ namespace PassengerWPF
                     if (SeatmapImage.Source is BitmapSource bmp)
                     {
                         int cropHeightPx = (int)(bmp.PixelHeight * (targetHeight / sourceHeight));
-                        var cropped = new CroppedBitmap(bmp, new Int32Rect(0, 0, bmp.PixelWidth, cropHeightPx));
+                        var cropped = new CroppedBitmap(bmp, new Int32Rect(0, 0, bmp.PixelWidth, Math.Min(cropHeightPx, bmp.PixelHeight)));
                         dc.DrawImage(cropped, new Rect(0, 0, targetWidth, targetHeight));
                     }
 
@@ -321,8 +333,13 @@ namespace PassengerWPF
 
                 rtb.Render(dv);
 
-                string tempPath = @"E:\FS-Addons\msfs-eigene\BoardingSystem\boarding\boarding_render_tmp.png";
-                string finalPath = @"E:\FS-Addons\msfs-eigene\BoardingSystem\boarding\boarding_render.png";
+                // Stuff-Ordner im App-Verzeichnis
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                string stuffDir = IOPath.Combine(baseDir, "stuff");
+                Directory.CreateDirectory(stuffDir);
+
+                string tempPath = IOPath.Combine(stuffDir, "boarding_render_tmp.png");
+                string finalPath = IOPath.Combine(stuffDir, "boarding_render.png");
 
                 using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
                 {
@@ -341,5 +358,8 @@ namespace PassengerWPF
                 MessageBox.Show("Fehler beim Screenshot:\n" + ex.Message);
             }
         }
+
+
+
     }
 }

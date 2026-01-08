@@ -160,7 +160,7 @@
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="stuff\boarding_render.png">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		  <CopyToOutputDirectory>Never</CopyToOutputDirectory>
 		</None>
 		<None Update="stuff\CateringMusic.mp3">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
