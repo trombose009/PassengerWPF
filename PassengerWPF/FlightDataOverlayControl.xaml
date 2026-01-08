@@ -28,24 +28,17 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Kontroll-Checkboxen (ursprüngliche Flugdaten entfernt) -->
+            <!-- Kontroll-Checkboxen -->
             <StackPanel Grid.Column="0" Orientation="Vertical" Margin="10,0,0,0">
                 <CheckBox x:Name="ChkFlightData" Content="Flugdaten" IsChecked="True" Margin="0,0,0,5" Foreground="White"/>
 
-                <!-- Kopierte Flugdaten Checkboxen bleiben -->
+                <!-- FlightDataMenu -->
                 <Border x:Name="FlightDataMenu" Background="#AA222222" Padding="5" Margin="10,0,0,5" Visibility="Collapsed">
                     <StackPanel>
-                        <TextBlock Text="Kopierte Flugdaten einzeln:" Foreground="White" FontWeight="Bold" Margin="0,5,0,2"/>
-                        <StackPanel Orientation="Vertical" Margin="5,2,0,5">
-                            <CheckBox x:Name="ChkCopyAltitude" Content="Altitude Copy" IsChecked="True" Foreground="White"/>
-                            <CheckBox x:Name="ChkCopySpeed" Content="Speed Copy" IsChecked="True" Foreground="White"/>
-                            <CheckBox x:Name="ChkCopyHeading" Content="Heading Copy" IsChecked="True" Foreground="White"/>
-                            <CheckBox x:Name="ChkCopyPosition" Content="Coords Copy" IsChecked="True" Foreground="White"/>
-                            <CheckBox x:Name="ChkCopyVSpeed" Content="VSpeed Copy" IsChecked="True" Foreground="White"/>
-                        </StackPanel>
 
+                        <!-- Manuelle Eingaben zuerst -->
                         <TextBlock Text="Manuelle Eingaben:" Foreground="White" FontWeight="Bold" Margin="0,5,0,2"/>
-                        <StackPanel Orientation="Vertical" Margin="5,2,0,0">
+                        <StackPanel Orientation="Vertical" Margin="5,2,0,5">
                             <StackPanel Orientation="Horizontal" Margin="0,2" VerticalAlignment="Center">
                                 <CheckBox x:Name="ChkManualAircraft" IsChecked="True" VerticalAlignment="Center" Margin="0,0,5,0"/>
                                 <TextBlock Text="Aircraft Type:" Foreground="White" Width="80"/>
@@ -62,6 +55,17 @@
                                 <TextBox x:Name="TxtArr" Width="80"/>
                             </StackPanel>
                         </StackPanel>
+
+                        <!-- Kopierte Flugdaten -->
+                        <TextBlock Text="Kopierte Flugdaten einzeln:" Foreground="White" FontWeight="Bold" Margin="0,5,0,2"/>
+                        <StackPanel Orientation="Vertical" Margin="5,2,0,0">
+                            <CheckBox x:Name="ChkCopyAltitude" Content="Altitude Copy" IsChecked="True" Foreground="White"/>
+                            <CheckBox x:Name="ChkCopySpeed" Content="Speed Copy" IsChecked="True" Foreground="White"/>
+                            <CheckBox x:Name="ChkCopyHeading" Content="Heading Copy" IsChecked="True" Foreground="White"/>
+                            <CheckBox x:Name="ChkCopyPosition" Content="Coords Copy" IsChecked="True" Foreground="White"/>
+                            <CheckBox x:Name="ChkCopyVSpeed" Content="VSpeed Copy" IsChecked="True" Foreground="White"/>
+                        </StackPanel>
+
                     </StackPanel>
                 </Border>
 
@@ -70,16 +74,29 @@
                 <CheckBox x:Name="ChkBoarding" Content="Seat-Map" IsChecked="True" Margin="0,0,0,5" Foreground="White"/>
             </StackPanel>
 
-            <!-- Overlay-Panels (unverändert) -->
+            <!-- Overlay-Panels -->
             <Grid Grid.Column="1" Margin="0">
                 <!-- FlightData Panel -->
                 <Border x:Name="FlightDataPanel" Background="#CC000000" Padding="10" Visibility="Visible">
                     <StackPanel>
-                        <TextBlock x:Name="PreviewTextBlock"
-                                   FontSize="16"
-                                   Text="Daten werden geladen..."
-                                   TextWrapping="Wrap"
-                                   Foreground="LightGreen"/>
+                        <!-- Preview Panel: DEP, ARR, Aircraft -->
+                        <StackPanel x:Name="PreviewPanel" Orientation="Vertical" Margin="0,0,0,5">
+                            <TextBlock Text="Flugdaten Vorschau" Foreground="LightBlue" FontWeight="Bold" Margin="0,0,0,2"/>
+                            <StackPanel Orientation="Vertical">
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="Aircraft:" Width="80" Foreground="White"/>
+                                    <TextBox x:Name="PreviewAircraft" Width="120" IsReadOnly="True"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="DEP:" Width="80" Foreground="White"/>
+                                    <TextBox x:Name="PreviewDep" Width="120" IsReadOnly="True"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="ARR:" Width="80" Foreground="White"/>
+                                    <TextBox x:Name="PreviewArr" Width="120" IsReadOnly="True"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
 
                         <!-- Kopie der Flugdaten -->
                         <StackPanel x:Name="CopyDataPanel" Visibility="Visible">

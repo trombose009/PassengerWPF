@@ -256,18 +256,11 @@ namespace PassengerWPF
                 ArrValueStatic = TxtArr?.Text ?? "EDDM";
 
                 // ===============================
-                // Vorschau zusammenstellen
+                // Vorschau in den neuen TextBoxen setzen
                 // ===============================
-                var sb = new StringBuilder();
-
-                if (ChkManualAircraft.IsChecked == true)
-                    sb.AppendLine($"Aircraft Type: {TxtAircraftType.Text}");
-                if (ChkManualDep.IsChecked == true)
-                    sb.AppendLine($"DEP: {TxtDep.Text}");
-                if (ChkManualArr.IsChecked == true)
-                    sb.AppendLine($"ARR: {TxtArr.Text}");
-
-                PreviewTextBlock.Text = sb.ToString();
+                PreviewAircraft.Text = (ChkManualAircraft.IsChecked == true) ? TxtAircraftType.Text : "";
+                PreviewDep.Text = (ChkManualDep.IsChecked == true) ? TxtDep.Text : "";
+                PreviewArr.Text = (ChkManualArr.IsChecked == true) ? TxtArr.Text : "";
 
                 // ===============================
                 // Kopierte Flugdaten setzen (Texboxen)
@@ -289,6 +282,7 @@ namespace PassengerWPF
                 OverlayLog.Text += $"Fehler beim Abrufen der Flugdaten: {ex.Message}\n";
             }
         }
+
 
         // ===============================
         // Overlay-Rotation
