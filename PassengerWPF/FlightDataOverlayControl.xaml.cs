@@ -70,6 +70,22 @@ namespace PassengerWPF
         {
             InitializeComponent();
 
+            // Preview Zeilen dynamisch ein-/ausblenden
+            ChkManualAircraft.Checked += (s, e) => PreviewAircraftLine.Visibility = Visibility.Visible;
+            ChkManualAircraft.Unchecked += (s, e) => PreviewAircraftLine.Visibility = Visibility.Collapsed;
+
+            ChkManualDep.Checked += (s, e) => PreviewDepLine.Visibility = Visibility.Visible;
+            ChkManualDep.Unchecked += (s, e) => PreviewDepLine.Visibility = Visibility.Collapsed;
+
+            ChkManualArr.Checked += (s, e) => PreviewArrLine.Visibility = Visibility.Visible;
+            ChkManualArr.Unchecked += (s, e) => PreviewArrLine.Visibility = Visibility.Collapsed;
+
+            // Initiale Sichtbarkeit
+            PreviewAircraftLine.Visibility = ChkManualAircraft.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+            PreviewDepLine.Visibility = ChkManualDep.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+            PreviewArrLine.Visibility = ChkManualArr.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+
+
             // --- CopyDataPanel permanent sichtbar ---
             CopyDataPanel.Visibility = Visibility.Visible;
 
