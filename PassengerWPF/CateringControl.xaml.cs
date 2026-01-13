@@ -1,23 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 
 namespace PassengerWPF
 {
     public partial class CateringControl : UserControl
     {
-        private List<Passenger> passengers;
-        private MediaPlayer cateringMusicPlayer;
         private readonly Dictionary<string, Dictionary<string, double>> seatPositions;
         private readonly Dictionary<string, double> baseRowY;
         private readonly Dictionary<string, double> avatarSize;
+        private readonly Dictionary<string, double> rowGangOffset;
 
         public CateringControl()
         {
@@ -44,649 +41,143 @@ namespace PassengerWPF
                 ["front"] = 100
             };
 
-            SetupBackground();
+            // aus alter Testfunktion abgeleitet
+            rowGangOffset = new()
+            {
+                ["front"] = 60,
+                ["near"] = 50,
+                ["back"] = 40
+            };
 
-            // Passagiere beim Loaded-Event platzieren
-            this.Loaded += (s, e) => LoadAndPlacePassengers();
+            SetupBackgroundAndStewardess();
+            PlaceDummyPassengers();
         }
 
-        private void SetupBackground()
+        private void SetupBackgroundAndStewardess()
         {
             string cabinDir = ConfigService.Current.Paths.Cabin;
 
-            void AddImage(string fileName, int zIndex, bool hitTest = true)
+            string bgPath = Path.Combine(cabinDir, "seatsbackground.png");
+            if (File.Exists(bgPath))
             {
-                var imgPath = Path.Combine(cabinDir, fileName);
-                if (!File.Exists(imgPath)) return;
-
-                var img = new Image
+                var bg = new Image
                 {
-                    Source = new BitmapImage(new Uri(imgPath, UriKind.Absolute)),
+                    Source = new BitmapImage(new Uri(bgPath, UriKind.Absolute)),
                     Width = 1355,
-                    Height = 768,
-                    IsHitTestVisible = hitTest
+                    Height = 768
                 };
-
-                Panel.SetZIndex(img, zIndex);
-                CabinCanvas.Children.Add(img);
+                Canvas.SetLeft(bg, 0);
+                Canvas.SetTop(bg, 0);
+                Panel.SetZIndex(bg, 1);
+                CabinCanvas.Children.Add(bg);
             }
 
-            AddImage("seatsbackground.png", 1);
-            AddImage("seatsmiddle.png", 4, false);
-            AddImage("seatsfront.png", 7, false);
-
             Stewardess.Source = LoadStewardessImage("stfront.png");
+            Stewardess.Width = 100;
+            Stewardess.Height = 100;
             Stewardess.RenderTransformOrigin = new Point(0.5, 1);
-            Stewardess.RenderTransform = new ScaleTransform(2.7, 2.7);
-            Canvas.SetLeft(Stewardess, 650);
-            Canvas.SetTop(Stewardess, 700);
+            Stewardess.RenderTransform = new ScaleTransform(5.0, 5.0);
+
+            Canvas.SetLeft(Stewardess, 620);
+            Canvas.SetTop(Stewardess, 800); // sichtbar, unten im Gang
+            Panel.SetZIndex(Stewardess, 5);
         }
 
         private BitmapImage LoadStewardessImage(string fileName)
         {
             string path = Path.Combine(ConfigService.Current.Paths.Stewardess, fileName);
-            if (!File.Exists(path)) return null;
-            return new BitmapImage(new Uri(path, UriKind.Absolute));
+            return File.Exists(path) ? new BitmapImage(new Uri(path, UriKind.Absolute)) : null;
         }
 
-        private (string row, string letter) GetRowAndSeatLetter(string seat)
+        private void PlaceDummyPassengers()
         {
-            if (string.IsNullOrWhiteSpace(seat)) return ("", "");
-            seat = seat.ToUpper().Trim();
-            string letter = seat[^1].ToString();
-            int.TryParse(seat[..^1], out int rowNum);
-
-            if (rowNum <= 5) return ("front", letter);
-            if (rowNum <= 10) return ("near", letter);
-            return ("back", letter);
-        }
-
-        private void LoadAndPlacePassengers()
-        {
-            // Alte Passagiere entfernen
-            var oldElements = CabinCanvas.Children
-                .OfType<FrameworkElement>()
-                .Where(c => c.Tag != null &&
-                            (c.Tag.ToString().StartsWith("avatar_passenger_") ||
-                             c.Tag.ToString().StartsWith("name_") ||
-                             c.Tag.ToString().StartsWith("order_badge_")))
-                .ToList();
-
-            foreach (var elem in oldElements)
-                CabinCanvas.Children.Remove(elem);
-
-            string csvPath = ConfigService.Current.Csv.PassengerData;
             string avatarsPath = ConfigService.Current.Paths.Avatars;
+            string avatarFile = "avatar1.png";
 
-            passengers = PassengerDataService.LoadPassengers(csvPath, avatarsPath, seatPositions
-                            .SelectMany(r => r.Value.Keys.Select(l => r.Key + l)).ToList())
-                        .Select(p => { p.Sitzplatz = p.Sitzplatz.Trim().ToUpper(); return p; })
-                        .ToList();
-
-            // Track belegte Sitze
-            var takenSeatsPerRow = new Dictionary<string, HashSet<string>>();
             foreach (var row in seatPositions.Keys)
-                takenSeatsPerRow[row] = new HashSet<string>();
-
-            foreach (var passenger in passengers)
             {
-                if (string.IsNullOrEmpty(passenger.AvatarFile))
-                    continue;
-
-                var (row, seatLetter) = GetRowAndSeatLetter(passenger.Sitzplatz);
-
-                // Prüfen, ob die Reihe existiert
-                if (!seatPositions.ContainsKey(row))
-                    row = "near"; // fallback auf mittlere Reihe, falls ungültig
-
-                // Prüfen, ob Sitz gültig oder schon belegt ist
-                if (!seatPositions[row].ContainsKey(seatLetter) || takenSeatsPerRow[row].Contains(seatLetter))
+                foreach (var seat in seatPositions[row].Keys)
                 {
-                    // Ersatz innerhalb derselben Reihe
-                    var freeSeats = seatPositions[row].Keys.Except(takenSeatsPerRow[row]).ToList();
-                    if (freeSeats.Count > 0)
-                    {
-                        seatLetter = freeSeats.First();
-                    }
-                    else
-                    {
-                        // Fallback auf andere Reihen (back/front), near wird nur genutzt, wenn Sitz vorhanden
-                        string[] fallbackRows = { "back", "front" };
-                        bool found = false;
-                        foreach (var r in fallbackRows)
-                        {
-                            var free = seatPositions[r].Keys.Except(takenSeatsPerRow[r]).ToList();
-                            if (free.Count > 0)
-                            {
-                                row = r;
-                                seatLetter = free.First();
-                                found = true;
-                                break;
-                            }
-                        }
+                    string path = Path.Combine(avatarsPath, avatarFile);
+                    if (!File.Exists(path)) continue;
 
-                        if (!found)
-                            continue; // kein Platz mehr, Passagier wird übersprungen
-                    }
+                    double x = seatPositions[row][seat];
+                    double y = baseRowY[row];
+                    double size = avatarSize[row];
+
+                    var img = new Image
+                    {
+                        Source = new BitmapImage(new Uri(path, UriKind.Absolute)),
+                        Width = size,
+                        Height = size
+                    };
+
+                    Canvas.SetLeft(img, x - size / 2);
+                    Canvas.SetTop(img, y);
+                    Panel.SetZIndex(img, row switch
+                    {
+                        "back" => 2,
+                        "near" => 5,
+                        "front" => 8,
+                        _ => 5
+                    });
+
+                    CabinCanvas.Children.Add(img);
                 }
-
-                // Sitz blockieren
-                takenSeatsPerRow[row].Add(seatLetter);
-
-                double x = seatPositions[row][seatLetter];
-                double y = baseRowY[row];
-                double size = avatarSize[row];
-
-                string imgPath = Path.Combine(avatarsPath, passenger.AvatarFile);
-                if (!File.Exists(imgPath)) continue;
-
-                // Avatar-Bild
-                var img = new Image
-                {
-                    Width = size,
-                    Height = size,
-                    Source = new BitmapImage(new Uri(imgPath, UriKind.Absolute)) { CacheOption = BitmapCacheOption.OnLoad },
-                    Tag = $"avatar_passenger_{passenger.Name}"
-                };
-
-                Canvas.SetLeft(img, x - size / 2);
-                Canvas.SetTop(img, y);
-                Panel.SetZIndex(img, row switch
-                {
-                    "back" => 2,
-                    "near" => 5,
-                    "front" => 8,
-                    _ => 5
-                });
-                CabinCanvas.Children.Add(img);
-
-                // Namensschild
-                var nameText = new TextBlock
-                {
-                    Text = passenger.Name,
-                    Foreground = Brushes.Orange,
-                    FontWeight = FontWeights.Bold,
-                    FontSize = 14,
-                    Margin = new Thickness(4, 2, 4, 2)
-                };
-
-                var nameBorder = new Border
-                {
-                    Background = new SolidColorBrush(Color.FromArgb(180, 30, 30, 30)),
-                    CornerRadius = new CornerRadius(4),
-                    Padding = new Thickness(2, 1, 2, 1),
-                    Child = nameText,
-                    Tag = $"name_{passenger.Name}"
-                };
-
-                Canvas.SetLeft(nameBorder, x - size / 2);
-                Canvas.SetTop(nameBorder, y - 22);
-                Panel.SetZIndex(nameBorder, Panel.GetZIndex(img) + 5);
-                CabinCanvas.Children.Add(nameBorder);
             }
         }
 
-
-        private bool IsSeatLeft(string row, string letter)
+        private async void StartServiceButton_Click(object sender, RoutedEventArgs e)
         {
-            letter = letter.ToUpper();
-            return row switch
-            {
-                "back" => letter is "A" or "B" or "C",
-                "near" => letter is "A" or "B" or "C",
-                "front" => letter is "B" or "C",
-                _ => true
-            };
-        }
+            StartServiceButton.IsEnabled = false;
 
-        private void SetStewardessZIndex(string row)
-        {
-            switch (row)
-            {
-                case "back":
-                    Panel.SetZIndex(Stewardess, 3);
-                    break;
-                case "near":
-                    Panel.SetZIndex(Stewardess, 6);
-                    break;
-                case "front":
-                    Panel.SetZIndex(Stewardess, 9);
-                    break;
-                default:
-                    Panel.SetZIndex(Stewardess, 3);
-                    break;
-            }
-        }
-
-        // --- Stewardess-Animationen bleiben unverändert ---
-        private async Task StewardessInitialMoveBack()
-        {
-            // Ganz vorne starten
             Stewardess.Source = LoadStewardessImage("stheck.png");
-            Stewardess.RenderTransform = new ScaleTransform(2.7, 2.7);
-            Stewardess.RenderTransformOrigin = new Point(0.5, 1);
 
             double startY = Canvas.GetTop(Stewardess);
-            double targetY = baseRowY["front"] - 145;
+            double targetY = baseRowY["back"] + rowGangOffset["back"];
 
-            double startScale = 2.7;
-            double targetScale = 2.0;
+            double startScale = (Stewardess.RenderTransform as ScaleTransform)?.ScaleX ?? 5.0;
+            double targetScale = 2.7;
 
-            await MoveStewardessWithScale(startY, targetY, startScale, targetScale, "back", "stheck.png");
+            await MoveStewardessVerticalWithScale(startY, targetY, startScale, targetScale);
+
+            StartServiceButton.IsEnabled = true;
         }
 
-
-        private async Task MoveStewardessToGangY(double targetY, string row, string imageName = "stfront.png")
+        private async Task MoveStewardessVerticalWithScale(
+            double startY,
+            double targetY,
+            double startScale,
+            double targetScale)
         {
-            // Aktuelle Position & Scale abfragen
-            double startY = Canvas.GetTop(Stewardess);
-            var transform = Stewardess.RenderTransform as ScaleTransform ?? new ScaleTransform(2.0, 2.0);
-            Stewardess.RenderTransform = transform;
-            double startScale = transform.ScaleX;
+            if (Stewardess.RenderTransform is not ScaleTransform transform)
+                return;
 
-            // Ziel-Scale basierend auf Reihe
-            double targetScale = row switch
-            {
-                "front" => 2.7,
-                "near" => 2.4,
-                "back" => 2.0,
-                _ => startScale
-            };
-
-            await MoveStewardessWithScale(startY, targetY, startScale, targetScale, row, imageName);
-        }
-
-        private async Task MoveStewardessWithScale(double startY, double targetY, double startScale, double targetScale, string row, string imageName)
-        {
-            Stewardess.Source = LoadStewardessImage(imageName);
-
-            var transform = Stewardess.RenderTransform as ScaleTransform ?? new ScaleTransform(startScale, startScale);
-            Stewardess.RenderTransform = transform;
-
-            int direction = targetY > startY ? 1 : -1;
             double speed = 3;
+            double totalDistance = Math.Abs(targetY - startY);
 
-            while (Math.Abs(Canvas.GetTop(Stewardess) - targetY) > 0.5)
+            while (true)
             {
-                double y = Canvas.GetTop(Stewardess) + direction * speed;
-                if ((direction > 0 && y > targetY) || (direction < 0 && y < targetY)) y = targetY;
+                double currentY = Canvas.GetTop(Stewardess);
+                double delta = Math.Sign(targetY - currentY) * speed;
+                double newY = currentY + delta;
 
-                // Position setzen
-                Canvas.SetTop(Stewardess, y);
+                if ((delta < 0 && newY <= targetY) || (delta > 0 && newY >= targetY))
+                    newY = targetY;
 
-                // Skalierung interpolieren
-                double progress = Math.Abs(y - startY) / Math.Abs(targetY - startY);
+                Canvas.SetTop(Stewardess, newY);
+
+                double progress = Math.Abs(newY - startY) / totalDistance;
                 double scale = startScale + (targetScale - startScale) * progress;
+
                 transform.ScaleX = scale;
                 transform.ScaleY = scale;
 
-                SetStewardessZIndex(row);
+                if (newY == targetY)
+                    break;
 
                 await Task.Delay(16);
             }
-
-            Canvas.SetTop(Stewardess, targetY);
-            transform.ScaleX = targetScale;
-            transform.ScaleY = targetScale;
-            SetStewardessZIndex(row);
         }
-
-
-        private async Task StewardessServePassenger(Image passengerImg, string row)
-        {
-            var p = passengers.FirstOrDefault(px => passengerImg.Tag.ToString().Contains(px.Name));
-            if (p == null) return;
-
-            double yFixed = row switch
-            {
-                "back" => baseRowY["back"] + 100,
-                "near" => baseRowY["near"] + 105,
-                "front" => baseRowY["front"] + 110,
-                _ => 700
-            };
-
-            double targetX = Canvas.GetLeft(passengerImg);
-            string seatLetter = GetRowAndSeatLetter(p.Sitzplatz).letter;
-            bool isLeft = IsSeatLeft(row, seatLetter);
-
-            string reinImage = isLeft ? "stlinks.png" : "strechts.png";
-            Stewardess.Source = LoadStewardessImage(reinImage);
-
-            double startX = Canvas.GetLeft(Stewardess);
-            while (Math.Abs(startX - targetX) > 0.5)
-            {
-                double delta = (targetX - startX) * 0.08;
-                if (Math.Abs(delta) < 0.3) delta = Math.Sign(delta) * 0.3;
-                startX += delta;
-
-                Canvas.SetLeft(Stewardess, startX);
-                Canvas.SetTop(Stewardess, yFixed);
-                SetStewardessZIndex(row);
-
-                await Task.Delay(16);
-            }
-
-            Canvas.SetLeft(Stewardess, targetX);
-
-            string servImage = isLeft ? "stservicelinks.png" : "stservicerechts.png";
-            Stewardess.Source = LoadStewardessImage(servImage);
-
-            for (int i = 0; i < 3; i++)
-            {
-                Canvas.SetLeft(Stewardess, targetX + 6);
-                await Task.Delay(220);
-                Canvas.SetLeft(Stewardess, targetX - 6);
-                await Task.Delay(220);
-            }
-
-            Canvas.SetLeft(Stewardess, targetX);
-            ShowOrderIconsFor(p);
-
-            string rausImage = isLeft ? "strechts.png" : "stlinks.png";
-            Stewardess.Source = LoadStewardessImage(rausImage);
-
-            double gangX = 650;
-            while (Math.Abs(Canvas.GetLeft(Stewardess) - gangX) > 0.5)
-            {
-                double delta = (gangX - Canvas.GetLeft(Stewardess)) * 0.08;
-                Canvas.SetLeft(Stewardess, Canvas.GetLeft(Stewardess) + delta);
-                Canvas.SetTop(Stewardess, yFixed);
-                SetStewardessZIndex(row);
-                await Task.Delay(16);
-            }
-
-            Canvas.SetLeft(Stewardess, gangX);
-            Stewardess.Source = LoadStewardessImage("stfront.png");
-        }
-
-        private void ShowOrderIconsFor(Passenger passenger)
-        {
-            if (passenger == null) return;
-
-            var avatarImg = CabinCanvas.Children
-                .OfType<Image>()
-                .FirstOrDefault(img => img.Tag?.ToString() == $"avatar_passenger_{passenger.Name}");
-            if (avatarImg == null) return;
-
-            string badgeTag = $"order_badge_{passenger.Name}";
-            var existing = CabinCanvas.Children
-                .OfType<FrameworkElement>()
-                .FirstOrDefault(x => (string)x.Tag == badgeTag);
-
-            if (existing != null)
-                CabinCanvas.Children.Remove(existing);
-
-            var badge = PlaceOrderBadgeInternal(avatarImg, passenger, avatarImg.Width);
-            badge.Tag = badgeTag;
-            CabinCanvas.Children.Add(badge);
-        }
-
-        private Border PlaceOrderBadgeInternal(Image avatarImg, Passenger passenger, double avatarSize)
-        {
-            string ordersDir = ConfigService.Current.Paths.Orders;
-            string[] files = { passenger.Order1, passenger.Order2, passenger.Order3, passenger.Order4 };
-            double iconSize = 45;
-            double padding = 2;
-            double grid = iconSize * 2 + padding * 2;
-
-            var badge = new Border
-            {
-                Width = grid,
-                Height = grid,
-                Background = new SolidColorBrush(Color.FromArgb(160, 30, 30, 30)),
-                CornerRadius = new CornerRadius(6),
-                BorderBrush = new SolidColorBrush(Color.FromArgb(200, 255, 255, 255)),
-                BorderThickness = new Thickness(1),
-                Opacity = 0,
-                RenderTransform = new ScaleTransform(0.7, 0.7),
-                RenderTransformOrigin = new Point(0.5, 0.5)
-            };
-
-            var g = new Grid();
-            g.RowDefinitions.Add(new RowDefinition());
-            g.RowDefinitions.Add(new RowDefinition());
-            g.ColumnDefinitions.Add(new ColumnDefinition());
-            g.ColumnDefinitions.Add(new ColumnDefinition());
-
-            for (int i = 0; i < 4; i++)
-            {
-                if (string.IsNullOrWhiteSpace(files[i])) continue;
-                string full = Path.Combine(ordersDir, files[i]);
-                if (!File.Exists(full)) continue;
-
-                var img = new Image
-                {
-                    Width = iconSize,
-                    Height = iconSize,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Source = new BitmapImage(new Uri(full, UriKind.Absolute))
-                };
-
-                Grid.SetRow(img, i / 2);
-                Grid.SetColumn(img, i % 2);
-                g.Children.Add(img);
-            }
-
-            badge.Child = g;
-
-            double x = Canvas.GetLeft(avatarImg) + (avatarSize / 2) - (grid / 2);
-            double y = Canvas.GetTop(avatarImg) - grid - 22;
-
-            Canvas.SetLeft(badge, x);
-            Canvas.SetTop(badge, y);
-            Panel.SetZIndex(badge, Panel.GetZIndex(avatarImg) + 10);
-
-            var fade = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(320))
-            {
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-            };
-            var scale = new DoubleAnimation(0.7, 1, TimeSpan.FromMilliseconds(300))
-            {
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-            };
-
-            badge.BeginAnimation(UIElement.OpacityProperty, fade);
-            ((ScaleTransform)badge.RenderTransform).BeginAnimation(ScaleTransform.ScaleXProperty, scale);
-            ((ScaleTransform)badge.RenderTransform).BeginAnimation(ScaleTransform.ScaleYProperty, scale);
-
-            return badge;
-        }
-
-       private async void StartServiceButton_Click(object sender, RoutedEventArgs e)
-{
-    if (StartServiceButton != null)
-        StartServiceButton.IsEnabled = false;
-
-    // Musik starten
-    string musicPath = ConfigService.Current.Paths.CateringMusic;
-    if (File.Exists(musicPath))
-    {
-        if (cateringMusicPlayer == null)
-            cateringMusicPlayer = new MediaPlayer();
-
-        cateringMusicPlayer.Open(new Uri(musicPath, UriKind.Absolute));
-        cateringMusicPlayer.Volume = 0.5;
-        cateringMusicPlayer.Play();
-    }
-
-    // Stewardess startet vorne hoch
-    if (Stewardess != null)
-        await StewardessInitialMoveBack();
-
-    // Reihenfolge: hinten → vorne
-    string[] rows = { "back", "near", "front" };
-    double middleX = 650; // Mittelgang X
-
-    foreach (var row in rows)
-    {
-        // --- Gang-Höhe für die Reihe ---
-        double rowY = row switch
-        {
-            "back" => baseRowY["back"] + 60,
-            "near" => baseRowY["near"] + 50,
-            "front" => baseRowY["front"] + 60,
-            _ => 700
-        };
-
-        // Stewardess zum Mittelgang fahren (Bild stfront.png)
-        Stewardess.Source = LoadStewardessImage("stfront.png");
-        await MoveStewardessWithScale(Canvas.GetTop(Stewardess), rowY,
-                                      ((ScaleTransform)Stewardess.RenderTransform).ScaleX,
-                                      row switch { "back" => 2.0, "near" => 2.4, "front" => 2.7, _ => 2.0 },
-                                      row, "stfront.png");
-        await MoveStewardessHorizontal(middleX);
-
-        // Passagiere in dieser Reihe sortiert von links nach rechts
-        var passengersInRow = passengers?
-            .Where(p => GetRowAndSeatLetter(p.Sitzplatz).row == row)
-            .Where(p => !string.IsNullOrWhiteSpace(p.Order1) ||
-                        !string.IsNullOrWhiteSpace(p.Order2) ||
-                        !string.IsNullOrWhiteSpace(p.Order3) ||
-                        !string.IsNullOrWhiteSpace(p.Order4))
-            .OrderBy(p => SeatXPosition(p))
-            .ToList() ?? new List<Passenger>();
-
-        // --- Links/Rechts-Bewegung wie in Testfunktion ---
-        double leftX = seatPositions[row].Values.Min();
-        double rightX = seatPositions[row].Values.Max();
-
-        // Ganz nach links
-        Stewardess.Source = LoadStewardessImage("stlinks.png");
-        await MoveStewardessHorizontal(leftX);
-        await Task.Delay(500);
-
-        // Ganz nach rechts
-        Stewardess.Source = LoadStewardessImage("strechts.png");
-        await MoveStewardessHorizontal(rightX);
-        await Task.Delay(500);
-
-        // Zurück zum Mittelgang
-        Stewardess.Source = LoadStewardessImage("stlinks.png");
-        await MoveStewardessHorizontal(middleX);
-        Stewardess.Source = LoadStewardessImage("stfront.png");
-        await Task.Delay(300);
-
-        // Dann Passagiere bedienen
-        foreach (var p in passengersInRow)
-        {
-            var passengerImg = CabinCanvas.Children
-                .OfType<Image>()
-                .FirstOrDefault(img => img.Tag?.ToString() == $"avatar_passenger_{p.Name}");
-            if (passengerImg != null)
-                await StewardessServePassenger(passengerImg, row);
-        }
-    }
-
-    // Stewardess zurück in Gang vorne
-    if (Stewardess != null)
-        await MoveStewardessToGangY(700, "");
-
-    cateringMusicPlayer?.Stop();
-
-    if (StartServiceButton != null)
-        StartServiceButton.IsEnabled = true;
-}
-
-
-        private async void TestStewardessGangButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (Stewardess == null) return;
-
-            // Start: vorne, Scale = 2.7
-            Stewardess.Source = LoadStewardessImage("stfront.png");
-            Stewardess.RenderTransform = new ScaleTransform(2.7, 2.7);
-            Stewardess.RenderTransformOrigin = new Point(0.5, 1);
-            double middleX = 650; // Mittelgang X
-            Canvas.SetLeft(Stewardess, middleX);
-            Canvas.SetTop(Stewardess, 700);
-
-            string[] rows = { "front", "near", "back" };
-
-            foreach (var row in rows)
-            {
-                // Ziel-Y für diese Reihe (vertikal verschoben nach unten für Test)
-                double targetY = row switch
-                {
-                    "front" => baseRowY["front"] + 60,
-                    "near" => baseRowY["near"] + 50,
-                    "back" => baseRowY["back"],
-                    _ => Canvas.GetTop(Stewardess)
-                };
-
-                // Ziel-Scale basierend auf Reihe
-                double targetScale = row switch
-                {
-                    "front" => 2.7,
-                    "near" => 2.4,
-                    "back" => 2.0,
-                    _ => 2.0
-                };
-
-                // Vertikale Bewegung + Scale
-                await MoveStewardessWithScale(Canvas.GetTop(Stewardess), targetY,
-                                              ((ScaleTransform)Stewardess.RenderTransform).ScaleX,
-                                              targetScale, row, "stfront.png");
-
-                // Dynamisch: links und rechts anhand der Sitzpositionen
-                double leftX = seatPositions[row].Values.Min();
-                double rightX = seatPositions[row].Values.Max();
-
-                // Ganz nach links → Bild auf stlinks.png
-                Stewardess.Source = LoadStewardessImage("stlinks.png");
-                await MoveStewardessHorizontal(leftX);
-                await Task.Delay(500);
-
-                // Ganz nach rechts → Bild auf strechts.png
-                Stewardess.Source = LoadStewardessImage("strechts.png");
-                await MoveStewardessHorizontal(rightX);
-                await Task.Delay(500);
-
-                // Zurück zum Mittelgang → Bild auf stlinks.png, da Rückweg von rechts nach links
-                Stewardess.Source = LoadStewardessImage("stlinks.png");
-                await MoveStewardessHorizontal(middleX);
-                await Task.Delay(300);
-
-                // Mittelgang erreicht → Bild wieder vorne
-                Stewardess.Source = LoadStewardessImage("stfront.png");
-            }
-
-            // Am Ende wieder vorne in Mittelgang
-            Stewardess.Source = LoadStewardessImage("stfront.png");
-            await MoveStewardessWithScale(Canvas.GetTop(Stewardess), 700,
-                                          ((ScaleTransform)Stewardess.RenderTransform).ScaleX,
-                                          2.7, "front", "stfront.png");
-        }
-
-
-
-        // Hilfsfunktion für horizontale Bewegung
-        private async Task MoveStewardessHorizontal(double targetX)
-        {
-            double startX = Canvas.GetLeft(Stewardess);
-            while (Math.Abs(startX - targetX) > 0.5)
-            {
-                double delta = (targetX - startX) * 0.08;
-                if (Math.Abs(delta) < 0.3) delta = Math.Sign(delta) * 0.3;
-                startX += delta;
-
-                Canvas.SetLeft(Stewardess, startX);
-                await Task.Delay(16);
-            }
-
-            Canvas.SetLeft(Stewardess, targetX);
-        }
-
-
-
-        // Hilfsmethode für X-Position der Sitzplätze
-        private double SeatXPosition(Passenger p)
-        {
-            var (row, letter) = GetRowAndSeatLetter(p.Sitzplatz);
-            if (!seatPositions.ContainsKey(row) || !seatPositions[row].ContainsKey(letter))
-                return 0;
-            return seatPositions[row][letter];
-        }
-
     }
 }
