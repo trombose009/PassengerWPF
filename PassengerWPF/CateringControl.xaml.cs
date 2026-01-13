@@ -14,12 +14,16 @@ namespace PassengerWPF
         private readonly Dictionary<string, Dictionary<string, double>> seatPositions;
         private readonly Dictionary<string, double> baseRowY;
         private readonly Dictionary<string, double> avatarSize;
-        private readonly Dictionary<string, double> rowGangOffset;
+
+        private double stewardessStartY = 800;       // Ausgangsposition unten
+        private double stewardessStartScale = 5.0;   // Ausgangsgröße unten
+        private double stewardessTargetScale = 2.7;  // Größe oben
 
         public CateringControl()
         {
             InitializeComponent();
 
+            // Sitzkoordinaten
             seatPositions = new()
             {
                 ["back"] = new() { ["A"] = 280, ["B"] = 410, ["C"] = 535, ["D"] = 800, ["E"] = 930, ["F"] = 1060 },
@@ -41,14 +45,6 @@ namespace PassengerWPF
                 ["front"] = 100
             };
 
-            // aus alter Testfunktion abgeleitet
-            rowGangOffset = new()
-            {
-                ["front"] = 60,
-                ["near"] = 50,
-                ["back"] = 40
-            };
-
             SetupBackgroundAndStewardess();
             PlaceDummyPassengers();
         }
@@ -57,6 +53,7 @@ namespace PassengerWPF
         {
             string cabinDir = ConfigService.Current.Paths.Cabin;
 
+            // Hintergrund
             string bgPath = Path.Combine(cabinDir, "seatsbackground.png");
             if (File.Exists(bgPath))
             {
@@ -72,21 +69,22 @@ namespace PassengerWPF
                 CabinCanvas.Children.Add(bg);
             }
 
+            // Stewardess am unteren Rand
             Stewardess.Source = LoadStewardessImage("stfront.png");
             Stewardess.Width = 100;
             Stewardess.Height = 100;
             Stewardess.RenderTransformOrigin = new Point(0.5, 1);
-            Stewardess.RenderTransform = new ScaleTransform(5.0, 5.0);
-
+            Stewardess.RenderTransform = new ScaleTransform(stewardessStartScale, stewardessStartScale);
             Canvas.SetLeft(Stewardess, 620);
-            Canvas.SetTop(Stewardess, 800); // sichtbar, unten im Gang
+            Canvas.SetTop(Stewardess, stewardessStartY);
             Panel.SetZIndex(Stewardess, 5);
         }
 
         private BitmapImage LoadStewardessImage(string fileName)
         {
             string path = Path.Combine(ConfigService.Current.Paths.Stewardess, fileName);
-            return File.Exists(path) ? new BitmapImage(new Uri(path, UriKind.Absolute)) : null;
+            if (!File.Exists(path)) return null;
+            return new BitmapImage(new Uri(path, UriKind.Absolute));
         }
 
         private void PlaceDummyPassengers()
@@ -107,9 +105,10 @@ namespace PassengerWPF
 
                     var img = new Image
                     {
-                        Source = new BitmapImage(new Uri(path, UriKind.Absolute)),
+                        Source = new BitmapImage(new Uri(path, UriKind.Absolute)) { CacheOption = BitmapCacheOption.OnLoad },
                         Width = size,
-                        Height = size
+                        Height = size,
+                        Tag = $"dummy_{row}_{seat}"
                     };
 
                     Canvas.SetLeft(img, x - size / 2);
@@ -131,53 +130,47 @@ namespace PassengerWPF
         {
             StartServiceButton.IsEnabled = false;
 
+            // 1. Hochlaufen (hin)
             Stewardess.Source = LoadStewardessImage("stheck.png");
+            await MoveStewardessVerticalWithScale(stewardessStartY, baseRowY["back"] - 45, stewardessStartScale, stewardessTargetScale);
 
-            double startY = Canvas.GetTop(Stewardess);
-            double targetY = baseRowY["back"] + rowGangOffset["back"];
+            // 2. Bild wechseln wieder nach vorne
+            Stewardess.Source = LoadStewardessImage("stfront.png");
 
-            double startScale = (Stewardess.RenderTransform as ScaleTransform)?.ScaleX ?? 5.0;
-            double targetScale = 2.7;
-
-            await MoveStewardessVerticalWithScale(startY, targetY, startScale, targetScale);
+            // 3. Rückweg (runter) entlang exakt derselben Y-Positionen
+            await MoveStewardessVerticalWithScale(baseRowY["back"] - 45, stewardessStartY, stewardessTargetScale, stewardessStartScale);
 
             StartServiceButton.IsEnabled = true;
         }
 
-        private async Task MoveStewardessVerticalWithScale(
-            double startY,
-            double targetY,
-            double startScale,
-            double targetScale)
+        private async Task MoveStewardessVerticalWithScale(double startY, double targetY, double startScale, double targetScale)
         {
-            if (Stewardess.RenderTransform is not ScaleTransform transform)
-                return;
+            var transform = Stewardess.RenderTransform as ScaleTransform;
 
             double speed = 3;
-            double totalDistance = Math.Abs(targetY - startY);
+            int direction = targetY > startY ? 1 : -1;
 
-            while (true)
+            while (Math.Abs(Canvas.GetTop(Stewardess) - targetY) > 0.5)
             {
                 double currentY = Canvas.GetTop(Stewardess);
-                double delta = Math.Sign(targetY - currentY) * speed;
-                double newY = currentY + delta;
-
-                if ((delta < 0 && newY <= targetY) || (delta > 0 && newY >= targetY))
+                double newY = currentY + direction * speed;
+                if ((direction > 0 && newY > targetY) || (direction < 0 && newY < targetY))
                     newY = targetY;
 
                 Canvas.SetTop(Stewardess, newY);
 
-                double progress = Math.Abs(newY - startY) / totalDistance;
+                // Linear skalieren
+                double progress = Math.Abs(newY - startY) / Math.Abs(targetY - startY);
                 double scale = startScale + (targetScale - startScale) * progress;
-
                 transform.ScaleX = scale;
                 transform.ScaleY = scale;
 
-                if (newY == targetY)
-                    break;
-
                 await Task.Delay(16);
             }
+
+            Canvas.SetTop(Stewardess, targetY);
+            transform.ScaleX = targetScale;
+            transform.ScaleY = targetScale;
         }
     }
 }
