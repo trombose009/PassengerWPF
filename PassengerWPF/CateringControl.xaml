@@ -24,6 +24,15 @@
             <Button x:Name="StartServiceButton" Content="Service starten"
             Width="140" Height="36"
             Click="StartServiceButton_Click"/>
+            <Button x:Name="TestGangButton"
+        Content="Stewardess Testlauf"
+        Width="150"
+        Height="40"
+        HorizontalAlignment="Left"
+        VerticalAlignment="Top"
+        Margin="10"
+        Click="TestStewardessGangButton_Click"/>
+
         </StackPanel>
 
 
