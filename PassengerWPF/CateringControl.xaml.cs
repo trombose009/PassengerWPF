@@ -77,7 +77,7 @@ namespace PassengerWPF
 
             Stewardess.Source = LoadStewardessImage("stfront.png");
             Stewardess.RenderTransformOrigin = new Point(0.5, 1);
-            Stewardess.RenderTransform = new ScaleTransform(2.0, 2.0);
+            Stewardess.RenderTransform = new ScaleTransform(2.7, 2.7);
             Canvas.SetLeft(Stewardess, 650);
             Canvas.SetTop(Stewardess, 700);
         }
@@ -118,11 +118,12 @@ namespace PassengerWPF
             string csvPath = ConfigService.Current.Csv.PassengerData;
             string avatarsPath = ConfigService.Current.Paths.Avatars;
 
-            var allSeats = seatPositions.SelectMany(r => r.Value.Keys.Select(l => r.Key + l)).ToList();
-            passengers = PassengerDataService.LoadPassengers(csvPath, avatarsPath, allSeats)
-                .Select(p => { p.Sitzplatz = p.Sitzplatz.Trim().ToUpper(); return p; })
-                .ToList();
+            passengers = PassengerDataService.LoadPassengers(csvPath, avatarsPath, seatPositions
+                            .SelectMany(r => r.Value.Keys.Select(l => r.Key + l)).ToList())
+                        .Select(p => { p.Sitzplatz = p.Sitzplatz.Trim().ToUpper(); return p; })
+                        .ToList();
 
+            // Track belegte Sitze
             var takenSeatsPerRow = new Dictionary<string, HashSet<string>>();
             foreach (var row in seatPositions.Keys)
                 takenSeatsPerRow[row] = new HashSet<string>();
@@ -134,24 +135,42 @@ namespace PassengerWPF
 
                 var (row, seatLetter) = GetRowAndSeatLetter(passenger.Sitzplatz);
 
-                // Nur freie Reihe wählen, wenn Sitzplatz leer oder ungültig
-                if (!seatPositions.ContainsKey(row) || !seatPositions[row].ContainsKey(seatLetter) || takenSeatsPerRow[row].Contains(seatLetter))
-                {
-                    var freeRow = seatPositions
-                        .OrderBy(r => Math.Abs(r.Value.Count - takenSeatsPerRow[r.Key].Count))
-                        .FirstOrDefault(r => takenSeatsPerRow[r.Key].Count < r.Value.Count).Key;
+                // Prüfen, ob die Reihe existiert
+                if (!seatPositions.ContainsKey(row))
+                    row = "near"; // fallback auf mittlere Reihe, falls ungültig
 
-                    if (freeRow != null)
+                // Prüfen, ob Sitz gültig oder schon belegt ist
+                if (!seatPositions[row].ContainsKey(seatLetter) || takenSeatsPerRow[row].Contains(seatLetter))
+                {
+                    // Ersatz innerhalb derselben Reihe
+                    var freeSeats = seatPositions[row].Keys.Except(takenSeatsPerRow[row]).ToList();
+                    if (freeSeats.Count > 0)
                     {
-                        row = freeRow;
-                        var freeSeats = seatPositions[row].Keys.Except(takenSeatsPerRow[row]).ToList();
-                        if (freeSeats.Count > 0)
-                            seatLetter = freeSeats.First();
-                        else
-                            continue;
+                        seatLetter = freeSeats.First();
+                    }
+                    else
+                    {
+                        // Fallback auf andere Reihen (back/front), near wird nur genutzt, wenn Sitz vorhanden
+                        string[] fallbackRows = { "back", "front" };
+                        bool found = false;
+                        foreach (var r in fallbackRows)
+                        {
+                            var free = seatPositions[r].Keys.Except(takenSeatsPerRow[r]).ToList();
+                            if (free.Count > 0)
+                            {
+                                row = r;
+                                seatLetter = free.First();
+                                found = true;
+                                break;
+                            }
+                        }
+
+                        if (!found)
+                            continue; // kein Platz mehr, Passagier wird übersprungen
                     }
                 }
 
+                // Sitz blockieren
                 takenSeatsPerRow[row].Add(seatLetter);
 
                 double x = seatPositions[row][seatLetter];
@@ -161,6 +180,7 @@ namespace PassengerWPF
                 string imgPath = Path.Combine(avatarsPath, passenger.AvatarFile);
                 if (!File.Exists(imgPath)) continue;
 
+                // Avatar-Bild
                 var img = new Image
                 {
                     Width = size,
@@ -171,7 +191,13 @@ namespace PassengerWPF
 
                 Canvas.SetLeft(img, x - size / 2);
                 Canvas.SetTop(img, y);
-                Panel.SetZIndex(img, row == "back" ? 2 : row == "near" ? 5 : 8);
+                Panel.SetZIndex(img, row switch
+                {
+                    "back" => 2,
+                    "near" => 5,
+                    "front" => 8,
+                    _ => 5
+                });
                 CabinCanvas.Children.Add(img);
 
                 // Namensschild
@@ -199,6 +225,7 @@ namespace PassengerWPF
                 CabinCanvas.Children.Add(nameBorder);
             }
         }
+
 
         private bool IsSeatLeft(string row, string letter)
         {
@@ -234,17 +261,48 @@ namespace PassengerWPF
         // --- Stewardess-Animationen bleiben unverändert ---
         private async Task StewardessInitialMoveBack()
         {
-            double targetY = baseRowY["front"] - 145;
-            await MoveStewardessToGangY(targetY, "back", "stheck.png", 2.7);
-        }
-
-        private async Task MoveStewardessToGangY(double targetY, string row, string imageName = "stfront.png", double scale = 2.0)
-        {
-            Stewardess.Source = LoadStewardessImage(imageName);
-            var transform = Stewardess.RenderTransform as ScaleTransform ?? new ScaleTransform(scale, scale);
-            Stewardess.RenderTransform = transform;
+            // Ganz vorne starten
+            Stewardess.Source = LoadStewardessImage("stheck.png");
+            Stewardess.RenderTransform = new ScaleTransform(2.7, 2.7);
+            Stewardess.RenderTransformOrigin = new Point(0.5, 1);
 
             double startY = Canvas.GetTop(Stewardess);
+            double targetY = baseRowY["front"] - 145;
+
+            double startScale = 2.7;
+            double targetScale = 2.0;
+
+            await MoveStewardessWithScale(startY, targetY, startScale, targetScale, "back", "stheck.png");
+        }
+
+
+        private async Task MoveStewardessToGangY(double targetY, string row, string imageName = "stfront.png")
+        {
+            // Aktuelle Position & Scale abfragen
+            double startY = Canvas.GetTop(Stewardess);
+            var transform = Stewardess.RenderTransform as ScaleTransform ?? new ScaleTransform(2.0, 2.0);
+            Stewardess.RenderTransform = transform;
+            double startScale = transform.ScaleX;
+
+            // Ziel-Scale basierend auf Reihe
+            double targetScale = row switch
+            {
+                "front" => 2.7,
+                "near" => 2.4,
+                "back" => 2.0,
+                _ => startScale
+            };
+
+            await MoveStewardessWithScale(startY, targetY, startScale, targetScale, row, imageName);
+        }
+
+        private async Task MoveStewardessWithScale(double startY, double targetY, double startScale, double targetScale, string row, string imageName)
+        {
+            Stewardess.Source = LoadStewardessImage(imageName);
+
+            var transform = Stewardess.RenderTransform as ScaleTransform ?? new ScaleTransform(startScale, startScale);
+            Stewardess.RenderTransform = transform;
+
             int direction = targetY > startY ? 1 : -1;
             double speed = 3;
 
@@ -253,14 +311,26 @@ namespace PassengerWPF
                 double y = Canvas.GetTop(Stewardess) + direction * speed;
                 if ((direction > 0 && y > targetY) || (direction < 0 && y < targetY)) y = targetY;
 
+                // Position setzen
                 Canvas.SetTop(Stewardess, y);
+
+                // Skalierung interpolieren
+                double progress = Math.Abs(y - startY) / Math.Abs(targetY - startY);
+                double scale = startScale + (targetScale - startScale) * progress;
+                transform.ScaleX = scale;
+                transform.ScaleY = scale;
+
                 SetStewardessZIndex(row);
+
                 await Task.Delay(16);
             }
 
             Canvas.SetTop(Stewardess, targetY);
+            transform.ScaleX = targetScale;
+            transform.ScaleY = targetScale;
             SetStewardessZIndex(row);
         }
+
 
         private async Task StewardessServePassenger(Image passengerImg, string row)
         {
