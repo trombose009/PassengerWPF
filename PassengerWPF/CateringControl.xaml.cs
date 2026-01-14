@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 
 namespace PassengerWPF
@@ -213,18 +214,50 @@ namespace PassengerWPF
                 double y = baseRowY[row];
                 double size = avatarSize[row];
 
-                var avatar = new Image
+                // ✅ Avatar + Name als Einheit (Grid)
+                var avatarImg = new Image
                 {
                     Width = size,
                     Height = size,
                     Source = LoadBitmapNoLock(imgPath),
-                    Tag = $"avatar_passenger_{p.Name}"
+                    Stretch = Stretch.UniformToFill,
+                    IsHitTestVisible = false
                 };
 
-                Canvas.SetLeft(avatar, x - size / 2);
-                Canvas.SetTop(avatar, y);
+                var nameText = new TextBlock
+                {
+                    Text = p.Name,
+                    FontSize = 12,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = new SolidColorBrush(Color.FromRgb(255, 165, 0)), // orange
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    TextAlignment = TextAlignment.Center,
+                    Margin = new Thickness(0, -16, 0, 0), // leicht über dem Avatar
+                    IsHitTestVisible = false,
+                    Effect = new DropShadowEffect
+                    {
+                        BlurRadius = 4,
+                        ShadowDepth = 0,
+                        Color = Colors.Black,
+                        Opacity = 0.7
+                    }
+                };
 
-                Panel.SetZIndex(avatar, row switch
+                var avatarContainer = new Grid
+                {
+                    Width = size,
+                    Height = size,
+                    Tag = $"avatar_passenger_{p.Name}",
+                    IsHitTestVisible = false
+                };
+
+                avatarContainer.Children.Add(avatarImg);
+                avatarContainer.Children.Add(nameText);
+
+                Canvas.SetLeft(avatarContainer, x - size / 2);
+                Canvas.SetTop(avatarContainer, y);
+
+                Panel.SetZIndex(avatarContainer, row switch
                 {
                     "back" => 2,
                     "near" => 5,
@@ -232,7 +265,7 @@ namespace PassengerWPF
                     _ => 5
                 });
 
-                CabinCanvas.Children.Add(avatar);
+                CabinCanvas.Children.Add(avatarContainer);
             }
         }
 
@@ -446,12 +479,12 @@ namespace PassengerWPF
             return Canvas.GetLeft(avatar) + (avatar.Width / 2.0);
         }
 
-        private Image FindAvatarOf(Passenger p)
+        private FrameworkElement FindAvatarOf(Passenger p)
         {
             string tag = $"avatar_passenger_{(p.Name ?? "").Trim()}";
             return CabinCanvas.Children
-                .OfType<Image>()
-                .FirstOrDefault(i => (i.Tag as string) == tag);
+                .OfType<FrameworkElement>()
+                .FirstOrDefault(e => (e.Tag as string) == tag);
         }
 
         // ✅ Center (Avatar) -> Stewardess.Left (weil Canvas.Left = linke Kante)
@@ -466,11 +499,14 @@ namespace PassengerWPF
         // -----------------------------
         private async Task ServePassengerSimpleAsync(double targetLeftX, string rowForZ)
         {
+            // Erst zum Passagier
             await MoveStewardessHorizontal(targetLeftX, rowForZ);
 
-            // ✅ Servierbild
-            SetStewardessImage("stservice.png");
+            // ✅ Passendes Servierbild je Seite (links/rechts)
+            bool serviceToLeftSide = targetLeftX < MiddleX;
+            SetStewardessImage(serviceToLeftSide ? "stservicelinks.png" : "stservicerechts.png");
 
+            // Wackeln beim Servieren
             for (int i = 0; i < 2; i++)
             {
                 Canvas.SetLeft(Stewardess, targetLeftX + 6);
