@@ -23,10 +23,6 @@
             </Canvas>
         </ScrollViewer>
 
-        <!-- Start Button -->
-        <Button x:Name="StartServiceButton" Content="Service starten"
-                Width="140" Height="36" 
-                Margin="10" VerticalAlignment="Top" HorizontalAlignment="Left"
-                Click="StartServiceButton_Click"/>
+
     </Grid>
 </UserControl>
