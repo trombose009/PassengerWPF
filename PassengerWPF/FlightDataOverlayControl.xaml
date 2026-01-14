@@ -59,11 +59,11 @@
                         <!-- Kopierte Flugdaten -->
                         <TextBlock Text="Flugdaten von SimConnect:" Foreground="White" FontWeight="Bold" Margin="0,5,0,2"/>
                         <StackPanel Orientation="Vertical" Margin="5,2,0,0">
-                            <CheckBox x:Name="ChkCopyAltitude" Content="Altitude Copy" IsChecked="True" Foreground="White"/>
-                            <CheckBox x:Name="ChkCopySpeed" Content="Speed Copy" IsChecked="True" Foreground="White"/>
-                            <CheckBox x:Name="ChkCopyHeading" Content="Heading Copy" IsChecked="True" Foreground="White"/>
-                            <CheckBox x:Name="ChkCopyPosition" Content="Coords Copy" IsChecked="True" Foreground="White"/>
-                            <CheckBox x:Name="ChkCopyVSpeed" Content="VSpeed Copy" IsChecked="True" Foreground="White"/>
+                            <CheckBox x:Name="ChkCopyAltitude" Content="Altitude" IsChecked="True" Foreground="White"/>
+                            <CheckBox x:Name="ChkCopySpeed" Content="Speed" IsChecked="True" Foreground="White"/>
+                            <CheckBox x:Name="ChkCopyHeading" Content="Heading" IsChecked="True" Foreground="White"/>
+                            <CheckBox x:Name="ChkCopyPosition" Content="Coords" IsChecked="True" Foreground="White"/>
+                            <CheckBox x:Name="ChkCopyVSpeed" Content="VSpeed" IsChecked="True" Foreground="White"/>
                         </StackPanel>
 
                     </StackPanel>

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Media;
@@ -20,52 +19,30 @@ namespace PassengerWPF
         private DispatcherTimer timer;
 
         private readonly Dictionary<string, (double x, double y)> seatCoordinates = new()
-         {
-      // Reihe 1
-      { "1A", (535, 285) }, { "1B", (557, 285) }, { "1C", (579, 285) },
-      { "1D", (619, 285) }, { "1E", (640, 285) }, { "1F", (661, 285) },
-
-      // Reihe 2
-      { "2A", (535, 321) }, { "2B", (557, 321) }, { "2C", (579, 321) },
-      { "2D", (619, 321) }, { "2E", (640, 321) }, { "2F", (661, 321) },
-
-      // Reihe 3
-      { "3A", (535, 353) }, { "3B", (557, 353) }, { "3C", (579, 353) },
-      { "3D", (619, 353) }, { "3E", (640, 353) }, { "3F", (661, 353) },
-
-      // Reihe 4
-      { "4A", (535, 386) }, { "4B", (557, 386) }, { "4C", (579, 386) },
-      { "4D", (619, 386) }, { "4E", (640, 386) }, { "4F", (661, 386) },
-
-      // Reihe 5
-      { "5A", (535, 421) }, { "5B", (557, 421) }, { "5C", (579, 421) },
-      { "5D", (619, 421) }, { "5E", (640, 421) }, { "5F", (661, 421) },
-
-      // Reihe 6
-      { "6A", (535, 453) }, { "6B", (557, 453) }, { "6C", (579, 453) },
-      { "6D", (619, 453) }, { "6E", (640, 453) }, { "6F", (661, 453) },
-
-      // Reihe 7
-      { "7A", (535, 487) }, { "7B", (557, 487) }, { "7C", (579, 487) },
-      { "7D", (619, 487) }, { "7E", (640, 487) }, { "7F", (661, 487) },
-
-      // Reihe 8
-      { "8A", (535, 520) }, { "8B", (557, 520) }, { "8C", (579, 520) },
-      { "8D", (619, 520) }, { "8E", (640, 520) }, { "8F", (661, 520) },
-
-      // Reihe 9
-      { "9A", (535, 554) }, { "9B", (557, 554) }, { "9C", (579, 554) },
-      { "9D", (619, 554) }, { "9E", (640, 554) }, { "9F", (661, 554) },
-
-      // Reihe 10
-      { "10A", (535, 589) }, { "10B", (557, 589) }, { "10C", (579, 589) },
-      { "10D", (619, 589) }, { "10E", (640, 589) }, { "10F", (661, 589) },
-
-      // Reihe 11
-      { "11A", (535, 622) }, { "11B", (557, 622) }, { "11C", (579, 622) },
-      { "11D", (619, 622) }, { "11E", (640, 622) }, { "11F", (661, 622) },
-
-      // Reihe 12
+        {
+            { "1A", (535, 285) }, { "1B", (557, 285) }, { "1C", (579, 285) },
+            { "1D", (619, 285) }, { "1E", (640, 285) }, { "1F", (661, 285) },
+            { "2A", (535, 321) }, { "2B", (557, 321) }, { "2C", (579, 321) },
+            { "2D", (619, 321) }, { "2E", (640, 321) }, { "2F", (661, 321) },
+            { "3A", (535, 353) }, { "3B", (557, 353) }, { "3C", (579, 353) },
+            { "3D", (619, 353) }, { "3E", (640, 353) }, { "3F", (661, 353) },
+            { "4A", (535, 386) }, { "4B", (557, 386) }, { "4C", (579, 386) },
+            { "4D", (619, 386) }, { "4E", (640, 386) }, { "4F", (661, 386) },
+            { "5A", (535, 421) }, { "5B", (557, 421) }, { "5C", (579, 421) },
+            { "5D", (619, 421) }, { "5E", (640, 421) }, { "5F", (661, 421) },
+            { "6A", (535, 453) }, { "6B", (557, 453) }, { "6C", (579, 453) },
+            { "6D", (619, 453) }, { "6E", (640, 453) }, { "6F", (661, 453) },
+            { "7A", (535, 487) }, { "7B", (557, 487) }, { "7C", (579, 487) },
+            { "7D", (619, 487) }, { "7E", (640, 487) }, { "7F", (661, 487) },
+            { "8A", (535, 520) }, { "8B", (557, 520) }, { "8C", (579, 520) },
+            { "8D", (619, 520) }, { "8E", (640, 520) }, { "8F", (661, 520) },
+            { "9A", (535, 554) }, { "9B", (557, 554) }, { "9C", (579, 554) },
+            { "9D", (619, 554) }, { "9E", (640, 554) }, { "9F", (661, 554) },
+            { "10A", (535, 589) }, { "10B", (557, 589) }, { "10C", (579, 589) },
+            { "10D", (619, 589) }, { "10E", (640, 589) }, { "10F", (661, 589) },
+            { "11A", (535, 622) }, { "11B", (557, 622) }, { "11C", (579, 622) },
+            { "11D", (619, 622) }, { "11E", (640, 622) }, { "11F", (661, 622) },
+                  // Reihe 12
       { "12A", (535, 655) }, { "12B", (557, 655) }, { "12C", (579, 655) },
       { "12D", (619, 655) }, { "12E", (640, 655) }, { "12F", (661, 655) },
 
@@ -88,12 +65,13 @@ namespace PassengerWPF
       // Reihe 17
       { "17A", (535, 824) }, { "17B", (557, 824) }, { "17C", (579, 824) },
       { "17D", (619, 824) }, { "17E", (640, 824) }, { "17F", (661, 824) },
-  };
+        };
 
         private string seatmapPath;
         private string passengerDataPath;
         private string boardingSoundPath;
         private string avatarsPath;
+
 
         private double seatOffsetX = -418.5;
         private double seatOffsetY = 35;
@@ -101,10 +79,6 @@ namespace PassengerWPF
         private double seatScaleY = 1;
 
         private string jsonPath => IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
-
-        private Queue<Passenger> initialQueue;
-        private bool initialDone = false;
-        private List<Passenger> lastSnapshot = new();
 
         public LiveBoardingControl()
         {
@@ -116,25 +90,16 @@ namespace PassengerWPF
             CreateSeatMarkers();
             PositionSeatMarkers();
 
-            var allSeats = seatCoordinates.Keys.ToList();
-            lastSnapshot = PassengerDataService.LoadPassengers(passengerDataPath, avatarsPath, allSeats);
-            initialQueue = new Queue<Passenger>(lastSnapshot);
-
             timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
             timer.Tick += Timer_Tick;
 
-            // GUI komplett fertig? dann Screenshot schreiben
-            this.Loaded += (s, e) =>
+            Loaded += (s, e) =>
             {
                 SeatCanvas.UpdateLayout();
-                RenderSeatmapScreenshot(); // einmaliges Initialbild
-                timer.Start();             // Timer erst danach starten
+                RenderSeatmapScreenshot();
+                timer.Start();
             };
-
-            UpdatePassengerListUI();
         }
-
-
 
         private void LoadConfig()
         {
@@ -160,7 +125,6 @@ namespace PassengerWPF
             {
                 try
                 {
-                    // absolute Datei-URI erzeugen
                     var uri = new Uri(IOPath.GetFullPath(seatmapPath), UriKind.Absolute);
                     SeatmapImage.Source = new BitmapImage(uri);
                 }
@@ -175,12 +139,11 @@ namespace PassengerWPF
             }
         }
 
-
         private void CreateSeatMarkers()
         {
             foreach (var kvp in seatCoordinates)
             {
-                var seatMarker = new Rectangle
+                var rect = new Rectangle
                 {
                     Width = 12,
                     Height = 15,
@@ -191,9 +154,8 @@ namespace PassengerWPF
                     RadiusY = 5,
                     ToolTip = kvp.Key
                 };
-
-                SeatCanvas.Children.Add(seatMarker);
-                seatMarkers[kvp.Key] = seatMarker;
+                SeatCanvas.Children.Add(rect);
+                seatMarkers[kvp.Key] = rect;
             }
         }
 
@@ -201,45 +163,76 @@ namespace PassengerWPF
         {
             foreach (var kvp in seatCoordinates)
             {
-                if (!seatMarkers.TryGetValue(kvp.Key, out var rect)) continue;
-                Canvas.SetLeft(rect, kvp.Value.x);
-                Canvas.SetTop(rect, kvp.Value.y);
+                if (seatMarkers.TryGetValue(kvp.Key, out var rect))
+                {
+                    Canvas.SetLeft(rect, kvp.Value.x);
+                    Canvas.SetTop(rect, kvp.Value.y);
+                }
             }
         }
 
         private void Timer_Tick(object sender, EventArgs e)
         {
-            if (!initialDone)
-            {
-                if (initialQueue.Count > 0)
-                {
-                    var next = initialQueue.Dequeue();
-                    AddPassengerToUI(next);
-                }
-                else
-                {
-                    initialDone = true;
-                }
+            if (!File.Exists(passengerDataPath)) return;
 
-                UpdatePassengerListUI();
-                return;
-            }
-
+            // 1. CSV frisch einlesen
             var allSeats = seatCoordinates.Keys.ToList();
-            var nowList = PassengerDataService.LoadPassengers(passengerDataPath, avatarsPath, allSeats);
+            var passengers = PassengerDataService.LoadPassengers(passengerDataPath, avatarsPath, allSeats);
 
-            var newOnes = nowList
-                .Where(p => !lastSnapshot.Any(x => x.Name == p.Name && x.Sitzplatz == p.Sitzplatz))
+            // 2. Neue Passagiere erkennen, die noch nicht im PassengerStore sind
+            var newPassengers = passengers
+                .Where(p => !PassengerStore.Passengers.Any(vm => vm.Name.Trim() == p.Name.Trim()))
                 .ToList();
 
-            lastSnapshot = nowList;
-
-            foreach (var p in newOnes)
+            foreach (var p in newPassengers)
             {
+                // 3. Sitzplatz vergeben, falls leer
+                if (string.IsNullOrWhiteSpace(p.Sitzplatz))
+                {
+                    var seat = FindNextFreeSeat(passengers);
+                    if (seat != null)
+                    {
+                        p.Sitzplatz = seat;
+                        UpdatePassengerSeatInCsv(p.Name, seat);
+                    }
+                }
+
+                // 4. Passagier in UI + Sound
                 AddPassengerToUI(p);
             }
 
+            // 5. Liste aktualisieren
             UpdatePassengerListUI();
+        }
+
+
+
+
+
+        private string FindNextFreeSeat(List<Passenger> passengers)
+        {
+            var used = passengers.Where(p => !string.IsNullOrWhiteSpace(p.Sitzplatz))
+                                 .Select(p => p.Sitzplatz)
+                                 .ToHashSet();
+            return seatCoordinates.Keys.FirstOrDefault(s => !used.Contains(s));
+        }
+
+        private void UpdatePassengerSeatInCsv(string name, string seat)
+        {
+            var lines = File.ReadAllLines(passengerDataPath).ToList();
+            for (int i = 1; i < lines.Count; i++)
+            {
+                var cols = lines[i].Split(',');
+                if (cols.Length == 0) continue;
+                if (cols[0] == name)
+                {
+                    if (cols.Length > 1) cols[1] = seat;
+                    else if (cols.Length == 1) cols = new string[] { name, seat };
+                    lines[i] = string.Join(",", cols);
+                    break;
+                }
+            }
+            File.WriteAllLines(passengerDataPath, lines);
         }
 
         private void AddPassengerToUI(Passenger p)
@@ -251,13 +244,13 @@ namespace PassengerWPF
             }
             catch { }
 
-            if (!string.IsNullOrEmpty(p.Sitzplatz) && seatMarkers.ContainsKey(p.Sitzplatz))
+            if (seatMarkers.TryGetValue(p.Sitzplatz, out var rect))
             {
-                seatMarkers[p.Sitzplatz].Fill = new SolidColorBrush(Color.FromRgb(220, 20, 60));
-                seatMarkers[p.Sitzplatz].ToolTip = p.Name;
+                rect.Fill = Brushes.Crimson;
+                rect.ToolTip = p.Name;
             }
 
-            var vm = new PassengerViewModel
+            PassengerStore.AddPassenger(new PassengerViewModel
             {
                 Name = p.Name,
                 Sitzplatz = p.Sitzplatz,
@@ -266,10 +259,7 @@ namespace PassengerWPF
                 Order2 = p.Order2,
                 Order3 = p.Order3,
                 Order4 = p.Order4
-            };
-
-            // **Nur noch PassengerStore verwenden**
-            PassengerStore.AddPassenger(vm);
+            });
 
             RenderSeatmapScreenshot();
         }
@@ -277,17 +267,13 @@ namespace PassengerWPF
         private void UpdatePassengerListUI()
         {
             BoardingListPanel.Children.Clear();
-
-            // Items direkt aus PassengerStore
             foreach (var p in PassengerStore.Passengers)
             {
-                var tb = new TextBlock
+                BoardingListPanel.Children.Add(new TextBlock
                 {
-                    Text = $"{p.Name}  ({p.Sitzplatz})",
-                    Foreground = Brushes.White,
-                    Margin = new Thickness(2, 1, 2, 1)
-                };
-                BoardingListPanel.Children.Add(tb);
+                    Text = $"{p.Name} ({p.Sitzplatz})",
+                    Foreground = Brushes.White
+                });
             }
         }
 
@@ -295,11 +281,6 @@ namespace PassengerWPF
         {
             try
             {
-                double sourceWidth = SeatCanvas.ActualWidth;
-                double sourceHeight = SeatCanvas.ActualHeight;
-
-                if (sourceWidth <= 0 || sourceHeight <= 0) return;
-
                 double targetWidth = 400;
                 double targetHeight = 900;
 
@@ -310,36 +291,38 @@ namespace PassengerWPF
                 {
                     if (SeatmapImage.Source is BitmapSource bmp)
                     {
-                        int cropHeightPx = (int)(bmp.PixelHeight * (targetHeight / sourceHeight));
-                        var cropped = new CroppedBitmap(bmp, new Int32Rect(0, 0, bmp.PixelWidth, Math.Min(cropHeightPx, bmp.PixelHeight)));
+                        // Crop: nur oberer Teil entsprechend targetHeight
+                        int cropHeightPx = (int)(bmp.PixelHeight * (targetHeight / SeatCanvas.Height));
+                        if (cropHeightPx > bmp.PixelHeight) cropHeightPx = bmp.PixelHeight;
+
+                        var cropped = new CroppedBitmap(bmp, new Int32Rect(0, 0, bmp.PixelWidth, cropHeightPx));
                         dc.DrawImage(cropped, new Rect(0, 0, targetWidth, targetHeight));
                     }
 
-                    foreach (var kvp in seatCoordinates)
+                    // Sitzrechtecke zeichnen mit Offset & Skalierung
+                    foreach (var kvp in seatMarkers)
                     {
-                        if (!seatMarkers.TryGetValue(kvp.Key, out var rect)) continue;
+                        if (!seatCoordinates.TryGetValue(kvp.Key, out var coords)) continue;
 
-                        double x = (kvp.Value.x * seatScaleX) + seatOffsetX;
-                        double y = (kvp.Value.y * seatScaleY) + seatOffsetY;
+                        double x = (coords.x * seatScaleX) + seatOffsetX;
+                        double y = (coords.y * seatScaleY) + seatOffsetY;
 
-                        if (y > targetHeight) continue;
+                        // Nur sichtbar innerhalb Zielhöhe
+                        if (y + kvp.Value.Height < 0 || y > targetHeight) continue;
 
-                        double w = rect.Width * seatScaleX;
-                        double h = rect.Height * seatScaleY;
+                        double w = kvp.Value.Width * seatScaleX;
+                        double h = kvp.Value.Height * seatScaleY;
 
-                        dc.DrawRectangle(rect.Fill, null, new Rect(x, y, w, h));
+                        dc.DrawRectangle(kvp.Value.Fill, null, new Rect(x, y, w, h));
                     }
                 }
 
                 rtb.Render(dv);
 
-                // Stuff-Ordner im App-Verzeichnis
+                // Datei ins Root neben der EXE
                 string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                string stuffDir = IOPath.Combine(baseDir, "stuff");
-                Directory.CreateDirectory(stuffDir);
-
-                string tempPath = IOPath.Combine(stuffDir, "boarding_render_tmp.png");
-                string finalPath = IOPath.Combine(stuffDir, "boarding_render.png");
+                string tempPath = IOPath.Combine(baseDir, "boarding_render_tmp.png");
+                string finalPath = IOPath.Combine(baseDir, "boarding_render.png");
 
                 using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
                 {
@@ -361,5 +344,49 @@ namespace PassengerWPF
 
 
 
+
+
+        // NEUE FUNKTION: Lädt alle Passagiere, egal ob Avatar oder Orders fehlen
+        private List<Passenger> LoadPassengers(string csvPath, string avatarsPath)
+        {
+            var list = new List<Passenger>();
+            if (!File.Exists(csvPath)) return list;
+
+            var lines = File.ReadAllLines(csvPath);
+            if (lines.Length < 2) return list;
+
+            for (int i = 1; i < lines.Length; i++)
+            {
+                var cols = lines[i].Split(',');
+
+                if (cols.Length == 0) continue;
+
+                string name = cols[0].Trim();
+                if (string.IsNullOrEmpty(name)) continue;
+
+                string seat = cols.Length > 1 ? cols[1].Trim() : "";
+                string avatarFile = (cols.Length > 2 && !string.IsNullOrEmpty(cols[2].Trim()))
+                                    ? IOPath.Combine(avatarsPath, cols[2].Trim())
+                                    : "";
+
+                string order1 = cols.Length > 3 ? cols[3].Trim() : "";
+                string order2 = cols.Length > 4 ? cols[4].Trim() : "";
+                string order3 = cols.Length > 5 ? cols[5].Trim() : "";
+                string order4 = cols.Length > 6 ? cols[6].Trim() : "";
+
+                list.Add(new Passenger
+                {
+                    Name = name,
+                    Sitzplatz = seat,
+                    AvatarFile = avatarFile,
+                    Order1 = order1,
+                    Order2 = order2,
+                    Order3 = order3,
+                    Order4 = order4
+                });
+            }
+
+            return list;
+        }
     }
 }

@@ -87,7 +87,7 @@
         <Button Content="..." Grid.Row="8" Grid.Column="2" Width="30" Click="BrowseFrequentFlyerBg_Click"/>
 
         <!-- BG Image Cabin -->
-        <TextBlock Text="Hintergrundbild Kabine:" Grid.Row="9" Grid.Column="0" VerticalAlignment="Center" Margin="0,5"/>
+        <TextBlock Text="Hintergrundbild Seat Map:" Grid.Row="9" Grid.Column="0" VerticalAlignment="Center" Margin="0,5"/>
         <TextBox x:Name="TxtBgImage" Grid.Row="9" Grid.Column="1" Margin="5" Height="25"/>
         <Button Content="..." Grid.Row="9" Grid.Column="2" Width="30" Click="BrowseBgImage_Click"/>
 

@@ -25,8 +25,8 @@ namespace PassengerWPF
 
         // === Zentrale Pfade ===
         private string appRoot => AppDomain.CurrentDomain.BaseDirectory;
-        private string stuffPath => Path.Combine(appRoot, "stuff");
-        private string seatMapPath => Path.Combine(stuffPath, "boarding_render.png");
+        private string seatMapPath => Path.Combine(appRoot, "boarding_render.png");
+
 
         // Live-Daten
         public static double CurrentAltitude { get; private set; }
@@ -114,8 +114,7 @@ namespace PassengerWPF
 
             DataContext = this;
 
-            Directory.CreateDirectory(stuffPath);
-
+       
             // --- Standard Rotationsintervall 10 Sekunden ---
             int defaultRotation = ConfigService.Current?.Paths?.Overlay?.RotationIntervalSeconds ?? 10;
             TxtRotationInterval.Text = defaultRotation.ToString();
@@ -305,6 +304,7 @@ namespace PassengerWPF
         // ===============================
         private void RotatePages()
         {
+            RefreshSeatMap();
             if (!Dispatcher.CheckAccess())
             {
                 Dispatcher.Invoke(RotatePages);
@@ -402,11 +402,38 @@ namespace PassengerWPF
             }
         }
 
+        // ===============================
+        // SeatMap laden (optimiert)
+        // ===============================
+        private DateTime lastSeatMapWriteTime = DateTime.MinValue;
+
         private void RefreshSeatMap()
         {
-            if (File.Exists(seatMapPath))
-                LoadSeatMap(seatMapPath);
+            if (!File.Exists(seatMapPath)) return;
+
+            try
+            {
+                // Prüfen, ob die Datei seit dem letzten Laden geändert wurde
+                DateTime writeTime = File.GetLastWriteTimeUtc(seatMapPath);
+                if (writeTime == lastSeatMapWriteTime) return; // nichts zu tun
+
+                lastSeatMapWriteTime = writeTime;
+
+                using var ms = new MemoryStream(File.ReadAllBytes(seatMapPath));
+                var img = new BitmapImage();
+                img.BeginInit();
+                img.CacheOption = BitmapCacheOption.OnLoad;
+                img.StreamSource = ms;
+                img.EndInit();
+                img.Freeze();
+                SeatMapImage.Source = img;
+            }
+            catch
+            {
+                OverlayLog.Text += $"SeatMap-Bild gerade gesperrt: {seatMapPath}\n";
+            }
         }
+
 
         // ===============================
         // Map initialisieren
