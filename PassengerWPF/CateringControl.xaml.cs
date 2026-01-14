@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 
@@ -19,6 +20,13 @@ namespace PassengerWPF
         private readonly Dictionary<string, Dictionary<string, double>> seatPositions;
         private readonly Dictionary<string, double> baseRowY;
         private readonly Dictionary<string, double> avatarSize;
+
+        // ✅ merkt sich pro Passagier, wie viele Orders bereits serviert wurden
+        private readonly Dictionary<Passenger, int> servedOrders = new();
+
+        // ✅ Referenzen auf Bubble + 4 Icons pro Passagier (dauerhaft, aber zunächst unsichtbar)
+        private readonly Dictionary<Passenger, Border> orderBubbleRefs = new();
+        private readonly Dictionary<Passenger, Image[]> orderIconRefs = new();
 
         private const double MiddleX = 620;
         private const double StartY = 800;
@@ -139,7 +147,6 @@ namespace PassengerWPF
             currentRowForZ = "front";
             SetStewardessZIndex(currentRowForZ);
 
-            // ✅ Startbild
             SetStewardessImage("stfront.png");
         }
 
@@ -181,7 +188,17 @@ namespace PassengerWPF
             passengers = LoadPassengersFromCsv(csvPath).ToList();
             Debug.WriteLine($"[CSV] Loaded passengers: {passengers.Count}");
 
+            servedOrders.Clear();
+            orderBubbleRefs.Clear();
+            orderIconRefs.Clear();
+            foreach (var p in passengers)
+                servedOrders[p] = 0;
+
             var takenSeatsPerRow = seatPositions.Keys.ToDictionary(k => k, _ => new HashSet<string>());
+
+            // ✅ Bubble überall gleich groß, aber etwas kleiner als zuvor
+            const double BubbleSize = 90;
+            const double BubbleGap = 20; // ✅ deutlich dichter über dem Kopf
 
             foreach (var p in passengers)
             {
@@ -200,7 +217,6 @@ namespace PassengerWPF
                 if (string.IsNullOrWhiteSpace(row) || !seatPositions.ContainsKey(row))
                     row = "near";
 
-                // falls SeatLetter nicht existiert: freien Seat in derselben Reihe nehmen
                 if (!seatPositions[row].ContainsKey(seatLetter) || takenSeatsPerRow[row].Contains(seatLetter))
                 {
                     var free = seatPositions[row].Keys.Except(takenSeatsPerRow[row]).ToList();
@@ -214,25 +230,28 @@ namespace PassengerWPF
                 double y = baseRowY[row];
                 double size = avatarSize[row];
 
-                // ✅ Avatar + Name als Einheit (Grid)
+                // Avatar
                 var avatarImg = new Image
                 {
                     Width = size,
                     Height = size,
                     Source = LoadBitmapNoLock(imgPath),
                     Stretch = Stretch.UniformToFill,
-                    IsHitTestVisible = false
+                    IsHitTestVisible = false,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Top
                 };
 
+                // Name
                 var nameText = new TextBlock
                 {
                     Text = p.Name,
                     FontSize = 12,
                     FontWeight = FontWeights.SemiBold,
-                    Foreground = new SolidColorBrush(Color.FromRgb(255, 165, 0)), // orange
+                    Foreground = new SolidColorBrush(Color.FromRgb(255, 165, 0)),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     TextAlignment = TextAlignment.Center,
-                    Margin = new Thickness(0, -16, 0, 0), // leicht über dem Avatar
+                    Margin = new Thickness(0, -16, 0, 0),
                     IsHitTestVisible = false,
                     Effect = new DropShadowEffect
                     {
@@ -243,19 +262,64 @@ namespace PassengerWPF
                     }
                 };
 
-                var avatarContainer = new Grid
+                // ✅ Bubble (erst sichtbar beim Servieren)
+                // WICHTIG: damit BubbleSize auch wirklich genutzt wird, bekommt CreateOrderBubbleHidden
+                // optional BubbleSize mit. Falls du die Methode nicht ändern willst:
+                // lass sie wie sie ist, dann ist Bubble ggf. noch größer. Besser: Methode anpassen.
+                var bubble = CreateOrderBubbleHidden(p, row, out var icons);
+                bubble.Width = BubbleSize;
+                bubble.Height = BubbleSize;
+
+                // ✅ Orders-Icons: zentriert ausrichten
+                if (icons != null)
                 {
-                    Width = size,
+                    foreach (var ic in icons)
+                    {
+                        if (ic == null) continue;
+                        ic.HorizontalAlignment = HorizontalAlignment.Center;
+                        ic.VerticalAlignment = VerticalAlignment.Center;
+                        ic.Stretch = Stretch.Uniform;
+                    }
+                }
+
+                orderBubbleRefs[p] = bubble;
+                orderIconRefs[p] = icons;
+
+                // ✅ Container groß genug für Bubble
+                double containerW = BubbleSize;
+                double containerH = BubbleSize + BubbleGap + size;
+
+                var avatarHost = new Grid
+                {
+                    Width = containerW,
                     Height = size,
-                    Tag = $"avatar_passenger_{p.Name}",
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Center,
                     IsHitTestVisible = false
                 };
+                avatarHost.Children.Add(avatarImg);
+                avatarHost.Children.Add(nameText);
 
-                avatarContainer.Children.Add(avatarImg);
-                avatarContainer.Children.Add(nameText);
+                var avatarContainer = new Grid
+                {
+                    Width = containerW,
+                    Height = containerH,
+                    Tag = $"avatar_passenger_{p.Name}",
+                    IsHitTestVisible = false,
+                    ClipToBounds = false
+                };
 
-                Canvas.SetLeft(avatarContainer, x - size / 2);
-                Canvas.SetTop(avatarContainer, y);
+                bubble.HorizontalAlignment = HorizontalAlignment.Center;
+                bubble.VerticalAlignment = VerticalAlignment.Top;
+
+                avatarContainer.Children.Add(bubble);
+                avatarContainer.Children.Add(avatarHost);
+
+                // ✅ Avatar soll weiterhin bei y sitzen -> topOffset
+                double topOffset = containerH - size;
+
+                Canvas.SetLeft(avatarContainer, x - containerW / 2.0);
+                Canvas.SetTop(avatarContainer, y - topOffset);
 
                 Panel.SetZIndex(avatarContainer, row switch
                 {
@@ -268,6 +332,7 @@ namespace PassengerWPF
                 CabinCanvas.Children.Add(avatarContainer);
             }
         }
+
 
         private void RemoveOldPassengerElements()
         {
@@ -299,7 +364,11 @@ namespace PassengerWPF
                 {
                     Name = parts.ElementAtOrDefault(0)?.Trim() ?? "",
                     Sitzplatz = parts.ElementAtOrDefault(1)?.Trim() ?? "",
-                    AvatarFile = parts.ElementAtOrDefault(2)?.Trim() ?? ""
+                    AvatarFile = parts.ElementAtOrDefault(2)?.Trim() ?? "",
+                    Order1 = parts.ElementAtOrDefault(3)?.Trim() ?? "",
+                    Order2 = parts.ElementAtOrDefault(4)?.Trim() ?? "",
+                    Order3 = parts.ElementAtOrDefault(5)?.Trim() ?? "",
+                    Order4 = parts.ElementAtOrDefault(6)?.Trim() ?? ""
                 };
             }
         }
@@ -327,9 +396,9 @@ namespace PassengerWPF
 
             int z = row switch
             {
-                "back" => 3,   // unter seatsmiddle(4)
-                "near" => 6,   // unter seatsfront(7)
-                "front" => 9,  // über seatsfront(7)
+                "back" => 3,
+                "near" => 6,
+                "front" => 9,
                 _ => 9
             };
 
@@ -337,7 +406,7 @@ namespace PassengerWPF
         }
 
         // -----------------------------
-        // Route: gezielt zu JEDEM Passagier
+        // Route
         // -----------------------------
         private async Task StartRouteSafeAsync()
         {
@@ -345,8 +414,6 @@ namespace PassengerWPF
             catch (Exception ex) { Debug.WriteLine("[ROUTE] EXCEPTION: " + ex); }
         }
 
-        // ✅ Feinjustage: “wie weit rein” pro rechter Seite
-        // (deine Werte: D 60, E 40, F 30 -> nach links ziehen = negative Werte)
         private double PassengerXOffset(string seatLetter)
         {
             seatLetter = (seatLetter ?? "").Trim().ToUpper();
@@ -363,7 +430,6 @@ namespace PassengerWPF
         {
             if (Stewardess == null) return;
 
-            // Reihen, in denen Passagiere sitzen
             var rowsWithPassengers = passengers
                 .Select(p => GetRowAndSeatLetter(p.Sitzplatz).row)
                 .Where(r => !string.IsNullOrWhiteSpace(r))
@@ -378,14 +444,12 @@ namespace PassengerWPF
             if (routeRows.Count == 0)
                 return;
 
-            // Start reset
             Canvas.SetLeft(Stewardess, MiddleX);
             Canvas.SetTop(Stewardess, StartY);
             EnsureScaleTransform();
             SetStewardessZIndex("front");
             SetStewardessImage("stfront.png");
 
-            // Hoch zur hintersten relevanten Reihe (immer in der Mitte!)
             string topRow = routeRows[0];
             Canvas.SetLeft(Stewardess, MiddleX);
 
@@ -397,15 +461,12 @@ namespace PassengerWPF
                 topRow
             );
 
-            // Dann Reihe für Reihe nach vorn
             for (int i = 0; i < routeRows.Count; i++)
             {
                 string row = routeRows[i];
 
-                // Immer zuerst in die Mitte
                 await MoveStewardessHorizontal(MiddleX, row);
 
-                // Exakt auf Reihen-Ganghöhe & Scale setzen
                 await MoveStewardessVerticalWithScale(
                     Canvas.GetTop(Stewardess),
                     GangY(row),
@@ -414,7 +475,6 @@ namespace PassengerWPF
                     row
                 );
 
-                // Passagiere dieser Reihe (links → rechts)
                 var paxInRow = passengers
                     .Where(p => GetRowAndSeatLetter(p.Sitzplatz).row == row)
                     .OrderBy(p => AvatarCenterX(p))
@@ -426,17 +486,14 @@ namespace PassengerWPF
                     if (paxCenter <= 0) continue;
 
                     double targetLeft = StewardessLeftFromPassengerCenter(paxCenter);
-
                     var seatLetter = GetRowAndSeatLetter(p.Sitzplatz).letter;
                     targetLeft += PassengerXOffset(seatLetter);
 
-                    await ServePassengerSimpleAsync(targetLeft, row);
+                    await ServePassengerSimpleAsync(targetLeft, row, p);
                 }
 
-                // Zurück in die Mitte
                 await MoveStewardessHorizontal(MiddleX, row);
 
-                // Zur nächsten Reihe nach vorn (wieder Mitte fix!)
                 if (i < routeRows.Count - 1)
                 {
                     string nextRow = routeRows[i + 1];
@@ -452,7 +509,6 @@ namespace PassengerWPF
                 }
             }
 
-            // Zurück zur Startposition
             await MoveStewardessHorizontal(MiddleX, "front");
             await MoveStewardessVerticalWithScale(
                 Canvas.GetTop(Stewardess),
@@ -462,7 +518,6 @@ namespace PassengerWPF
                 "front"
             );
 
-            // Hard reset final
             Canvas.SetLeft(Stewardess, MiddleX);
             Canvas.SetTop(Stewardess, StartY);
             var t = (ScaleTransform)Stewardess.RenderTransform;
@@ -487,26 +542,191 @@ namespace PassengerWPF
                 .FirstOrDefault(e => (e.Tag as string) == tag);
         }
 
-        // ✅ Center (Avatar) -> Stewardess.Left (weil Canvas.Left = linke Kante)
         private double StewardessLeftFromPassengerCenter(double passengerCenterX)
+            => passengerCenterX - (Stewardess.Width / 2.0);
+
+        // -----------------------------
+        // Orders: Bubble erscheint erst beim Servieren + Icons kommen nach und nach
+        // -----------------------------
+        private List<string> GetOrdersOfPassenger(Passenger p)
         {
-            // Canvas.Left basiert auf der unskalierten Layout-Width!
-            return passengerCenterX - (Stewardess.Width / 2.0);
+            return new[]
+            {
+                p.Order1, p.Order2, p.Order3, p.Order4
+            }
+            .Select(o => (o ?? "").Trim())
+            .Where(o => !string.IsNullOrWhiteSpace(o))
+            .ToList();
+        }
+
+        private int GetServedCount(Passenger p)
+        {
+            if (p == null) return 0;
+            if (!servedOrders.ContainsKey(p)) servedOrders[p] = 0;
+            return servedOrders[p];
+        }
+
+        private string GetNextOrderFileAndAdvance(Passenger p)
+        {
+            if (p == null) return null;
+
+            if (!servedOrders.ContainsKey(p))
+                servedOrders[p] = 0;
+
+            var orders = GetOrdersOfPassenger(p);
+            int index = servedOrders[p];
+
+            if (index >= orders.Count)
+                return null;
+
+            string file = orders[index];
+            servedOrders[p] = index + 1;
+            return file;
+        }
+
+        private Border CreateOrderBubbleHidden(Passenger p, string row, out Image[] iconRefs)
+        {
+            // ✅ Bubble-Größe wird von außen gesetzt (bubble.Width/Height in LoadAndPlacePassengers),
+            // aber falls nicht: Default.
+            double bubbleSize = 90;
+
+            // ✅ enger & sicher (damit nichts abgeschnitten wird)
+            const double padding = 5;        // Innenabstand der Bubble
+            const double iconMargin = 1;     // Abstand je Icon im Slot
+
+            // 2x2 Raster: verfügbare Innenfläche
+            double inner = bubbleSize - (padding * 2);
+
+            // Icon-Größe pro Zelle so, dass Margin NICHT clippt:
+            // pro Zelle: inner/2, davon gehen links+rechts margin weg -> 2*iconMargin
+            double iconSize = (inner / 2.0) - (iconMargin * 2);
+
+            // Sicherheitsnetz (falls jemand bubbleSize kleiner macht)
+            if (iconSize < 10) iconSize = 10;
+
+            var grid = new Grid
+            {
+                Width = bubbleSize,
+                Height = bubbleSize,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                UseLayoutRounding = true,
+                SnapsToDevicePixels = true
+            };
+
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            iconRefs = new Image[4];
+
+            for (int i = 0; i < 4; i++)
+            {
+                var img = new Image
+                {
+                    Width = iconSize,
+                    Height = iconSize,
+                    Stretch = Stretch.Uniform,               // ✅ nichts abschneiden
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(iconMargin),
+                    Opacity = 0.0,                           // ✅ erscheint erst beim Servieren
+                    IsHitTestVisible = false,
+                    SnapsToDevicePixels = true,
+                    UseLayoutRounding = true
+                };
+
+                iconRefs[i] = img;
+
+                Grid.SetRow(img, i / 2);
+                Grid.SetColumn(img, i % 2);
+                grid.Children.Add(img);
+            }
+
+            var bubble = new Border
+            {
+                Child = grid,
+                Width = bubbleSize,
+                Height = bubbleSize,
+                CornerRadius = new CornerRadius(10),
+                Background = new SolidColorBrush(Color.FromArgb(95, 0, 0, 0)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(90, 255, 165, 0)),
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(padding),
+
+                // ✅ Position NICHT hier hacken – wird vom Container geregelt
+                Margin = new Thickness(0),
+
+                IsHitTestVisible = false,
+                Opacity = 0.0,
+                Visibility = Visibility.Collapsed,
+                Effect = new DropShadowEffect
+                {
+                    BlurRadius = 10,
+                    ShadowDepth = 0,
+                    Color = Colors.Black,
+                    Opacity = 0.50
+                },
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top
+            };
+
+            return bubble;
+        }
+
+
+
+
+        private void EnsureBubbleVisible(Passenger p)
+        {
+            if (!orderBubbleRefs.TryGetValue(p, out var bubble) || bubble == null) return;
+
+            if (bubble.Visibility != Visibility.Visible)
+            {
+                bubble.Visibility = Visibility.Visible;
+
+                // Fade-In
+                bubble.Opacity = 0;
+                var fade = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(140));
+                bubble.BeginAnimation(OpacityProperty, fade);
+            }
+        }
+
+        private void RevealNextOrderIcon(Passenger p, string orderFileName, int servedIndexJustServed)
+        {
+            if (!orderIconRefs.TryGetValue(p, out var icons) || icons == null) return;
+            if (servedIndexJustServed < 0 || servedIndexJustServed > 3) return;
+
+            // 🔧 Pfad aus config.json
+            string ordersDir = ConfigService.Current.Paths.Orders; // ggf. anpassen
+            string full = Path.Combine(ordersDir, orderFileName);
+
+            if (!File.Exists(full))
+            {
+                Debug.WriteLine($"[ORDER] Missing: {full}");
+                return;
+            }
+
+            var img = icons[servedIndexJustServed];
+            img.Source = LoadBitmapNoLock(full);
+
+            // sichtbar machen (mit kleinem Pop)
+            img.Opacity = 0.0;
+            var fade = new DoubleAnimation(0, 0.95, TimeSpan.FromMilliseconds(120));
+            img.BeginAnimation(OpacityProperty, fade);
         }
 
         // -----------------------------
-        // “Serve”: rein → wackeln → raus
+        // Serve: Bubble + Order erscheinen erst beim Servieren
         // -----------------------------
-        private async Task ServePassengerSimpleAsync(double targetLeftX, string rowForZ)
+        private async Task ServePassengerSimpleAsync(double targetLeftX, string rowForZ, Passenger p)
         {
-            // Erst zum Passagier
             await MoveStewardessHorizontal(targetLeftX, rowForZ);
 
-            // ✅ Passendes Servierbild je Seite (links/rechts)
             bool serviceToLeftSide = targetLeftX < MiddleX;
             SetStewardessImage(serviceToLeftSide ? "stservicelinks.png" : "stservicerechts.png");
 
-            // Wackeln beim Servieren
             for (int i = 0; i < 2; i++)
             {
                 Canvas.SetLeft(Stewardess, targetLeftX + 6);
@@ -514,12 +734,22 @@ namespace PassengerWPF
                 Canvas.SetLeft(Stewardess, targetLeftX - 6);
                 await Task.Delay(160);
             }
-
             Canvas.SetLeft(Stewardess, targetLeftX);
 
-            // zurück in die Mitte (Bild wird in MoveStewardessHorizontal gesetzt)
+            // ✅ Bubble erscheint erst beim Servieren
+            EnsureBubbleVisible(p);
+
+            // ✅ Sobald sie da ist: ALLE Orders anzeigen (nicht nur eine)
+            PopulateBubbleWithAllOrders(p);
+
+            // ✅ OPTIONAL: Wenn du die "served"-Logik intern behalten willst (ohne Dimmung),
+            // dann nur zählen, aber NICHT visualisieren:
+            _ = GetNextOrderFileAndAdvance(p);
+
             await MoveStewardessHorizontal(MiddleX, rowForZ);
         }
+
+
 
         // -----------------------------
         // Movement helpers
@@ -534,7 +764,6 @@ namespace PassengerWPF
         {
             SetStewardessZIndex(rowForZ);
 
-            // ✅ Bild je Richtung
             double startX = Canvas.GetLeft(Stewardess);
             if (targetX < startX) SetStewardessImage("stlinks.png");
             else if (targetX > startX) SetStewardessImage("strechts.png");
@@ -560,6 +789,87 @@ namespace PassengerWPF
             Canvas.SetLeft(Stewardess, targetX);
             SetStewardessZIndex(rowForZ);
         }
+        private void PopulateBubbleWithAllOrders(Passenger p)
+        {
+            if (p == null) return;
+            if (!orderIconRefs.TryGetValue(p, out var icons) || icons == null) return;
+
+            var orders = GetOrdersOfPassenger(p);
+            if (orders.Count == 0) return;
+
+            string ordersDir = ConfigService.Current.Paths.Orders; // ggf. anpassen
+
+            for (int i = 0; i < 4; i++)
+            {
+                var img = icons[i];
+                if (img == null) continue;
+
+                if (i < orders.Count)
+                {
+                    string fileName = orders[i];
+                    string full = Path.Combine(ordersDir, fileName);
+
+                    if (File.Exists(full))
+                    {
+                        img.Source = LoadBitmapNoLock(full);
+                        img.Opacity = 0.95;   // sichtbar
+                        img.Visibility = Visibility.Visible;
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"[ORDER] Missing: {full}");
+                        img.Opacity = 0.0;
+                        img.Visibility = Visibility.Hidden;
+                    }
+                }
+                else
+                {
+                    // kein Order in dem Slot
+                    img.Source = null;
+                    img.Opacity = 0.0;
+                    img.Visibility = Visibility.Hidden;
+                }
+            }
+
+            // direkt korrekt "Served" darstellen (falls schon was serviert wurde)
+            RefreshServedDimming(p);
+        }
+        private void RefreshServedDimming(Passenger p)
+        {
+            if (p == null) return;
+            if (!orderIconRefs.TryGetValue(p, out var icons) || icons == null) return;
+
+            int served = GetServedCount(p);
+            var orders = GetOrdersOfPassenger(p);
+
+            for (int i = 0; i < 4; i++)
+            {
+                var img = icons[i];
+                if (img == null) continue;
+
+                if (i >= orders.Count)
+                    continue;
+
+                // ✅ served -> nur leicht dimmen (nicht "weg")
+                if (i < served)
+                {
+                    img.Opacity = 0.55;     // vorher war das viel zu niedrig (wirkt wie "hinter Bubble")
+                    img.Effect = new DropShadowEffect
+                    {
+                        BlurRadius = 2,
+                        ShadowDepth = 0,
+                        Color = Colors.Black,
+                        Opacity = 0.35
+                    };
+                }
+                else
+                {
+                    img.Opacity = 0.95;
+                    img.Effect = null;
+                }
+            }
+        }
+
 
         private async Task MoveStewardessVerticalWithScale(double startY, double targetY, double startScale, double targetScale, string rowForZ)
         {
@@ -568,7 +878,6 @@ namespace PassengerWPF
 
             SetStewardessZIndex(rowForZ);
 
-            // ✅ Bild je Richtung
             bool goingUp = targetY < startY;
             SetStewardessImage(goingUp ? "stheck.png" : "stfront.png");
 
