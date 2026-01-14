@@ -22,10 +22,10 @@ namespace PassengerWPF
         private const double MiddleX = 620;
         private const double StartY = 800;
 
-        // ✅ HIER stellst du ein, wie tief der Gang pro Reihe liegt (größer = weiter unten)
+        // ✅ Gang-Höhe pro Reihe (größer = weiter unten)
         private const double GangOffsetBack = 115;
-        private const double GangOffsetNear = 105;
-        private const double GangOffsetFront = 95;
+        private const double GangOffsetNear = 125;
+        private const double GangOffsetFront = 260;
 
         private string currentRowForZ = "front";
 
@@ -81,6 +81,16 @@ namespace PassengerWPF
         }
 
         // -----------------------------
+        // ✅ Zentraler Einstieg: Stewardess-Bild setzen
+        // -----------------------------
+        private void SetStewardessImage(string fileName)
+        {
+            var img = LoadStewardessImage(fileName);
+            if (img != null)
+                Stewardess.Source = img;
+        }
+
+        // -----------------------------
         // Layers + Stewardess init
         // -----------------------------
         private void SetupBackgroundAndStewardess()
@@ -117,7 +127,6 @@ namespace PassengerWPF
             AddLayer("seatsmiddle.png", 4);
             AddLayer("seatsfront.png", 7);
 
-            Stewardess.Source = LoadStewardessImage("stfront.png");
             Stewardess.Width = 100;
             Stewardess.Height = 100;
             Stewardess.RenderTransformOrigin = new Point(0.5, 1);
@@ -128,6 +137,9 @@ namespace PassengerWPF
 
             currentRowForZ = "front";
             SetStewardessZIndex(currentRowForZ);
+
+            // ✅ Startbild
+            SetStewardessImage("stfront.png");
         }
 
         private BitmapImage LoadStewardessImage(string fileName)
@@ -254,12 +266,7 @@ namespace PassengerWPF
                 {
                     Name = parts.ElementAtOrDefault(0)?.Trim() ?? "",
                     Sitzplatz = parts.ElementAtOrDefault(1)?.Trim() ?? "",
-                    AvatarFile = parts.ElementAtOrDefault(2)?.Trim() ?? "",
-                    // Orders optional – falls dein Passenger diese Props hat, ok; sonst ignorieren
-                    Order1 = parts.ElementAtOrDefault(3)?.Trim() ?? "",
-                    Order2 = parts.ElementAtOrDefault(4)?.Trim() ?? "",
-                    Order3 = parts.ElementAtOrDefault(5)?.Trim() ?? "",
-                    Order4 = parts.ElementAtOrDefault(6)?.Trim() ?? ""
+                    AvatarFile = parts.ElementAtOrDefault(2)?.Trim() ?? ""
                 };
             }
         }
@@ -305,11 +312,25 @@ namespace PassengerWPF
             catch (Exception ex) { Debug.WriteLine("[ROUTE] EXCEPTION: " + ex); }
         }
 
+        // ✅ Feinjustage: “wie weit rein” pro rechter Seite
+        // (deine Werte: D 60, E 40, F 30 -> nach links ziehen = negative Werte)
+        private double PassengerXOffset(string seatLetter)
+        {
+            seatLetter = (seatLetter ?? "").Trim().ToUpper();
+            return seatLetter switch
+            {
+                "D" => -60,
+                "E" => -40,
+                "F" => -30,
+                _ => 0
+            };
+        }
+
         private async Task RunServingRouteAsync()
         {
             if (Stewardess == null) return;
 
-            // ✅ Reihen, in denen überhaupt Passagiere sitzen (nicht nur Orders)
+            // Reihen, in denen Passagiere sitzen
             var rowsWithPassengers = passengers
                 .Select(p => GetRowAndSeatLetter(p.Sitzplatz).row)
                 .Where(r => !string.IsNullOrWhiteSpace(r))
@@ -329,6 +350,7 @@ namespace PassengerWPF
             Canvas.SetTop(Stewardess, StartY);
             EnsureScaleTransform();
             SetStewardessZIndex("front");
+            SetStewardessImage("stfront.png");
 
             // Hoch zur hintersten relevanten Reihe (immer in der Mitte!)
             string topRow = routeRows[0];
@@ -359,7 +381,7 @@ namespace PassengerWPF
                     row
                 );
 
-                // Passagiere dieser Reihe (links → rechts) – ✅ jeder wird besucht
+                // Passagiere dieser Reihe (links → rechts)
                 var paxInRow = passengers
                     .Where(p => GetRowAndSeatLetter(p.Sitzplatz).row == row)
                     .OrderBy(p => AvatarCenterX(p))
@@ -367,9 +389,15 @@ namespace PassengerWPF
 
                 foreach (var p in paxInRow)
                 {
-                    double x = AvatarCenterX(p);
-                    if (x <= 0) continue;
-                    await ServePassengerSimpleAsync(x, row);
+                    double paxCenter = AvatarCenterX(p);
+                    if (paxCenter <= 0) continue;
+
+                    double targetLeft = StewardessLeftFromPassengerCenter(paxCenter);
+
+                    var seatLetter = GetRowAndSeatLetter(p.Sitzplatz).letter;
+                    targetLeft += PassengerXOffset(seatLetter);
+
+                    await ServePassengerSimpleAsync(targetLeft, row);
                 }
 
                 // Zurück in die Mitte
@@ -401,20 +429,20 @@ namespace PassengerWPF
                 "front"
             );
 
+            // Hard reset final
             Canvas.SetLeft(Stewardess, MiddleX);
             Canvas.SetTop(Stewardess, StartY);
             var t = (ScaleTransform)Stewardess.RenderTransform;
             t.ScaleX = RowScale("front");
             t.ScaleY = RowScale("front");
             SetStewardessZIndex("front");
+            SetStewardessImage("stfront.png");
         }
 
         private double AvatarCenterX(Passenger p)
         {
             var avatar = FindAvatarOf(p);
             if (avatar == null) return 0;
-
-            // ✅ Mitte statt linke Kante
             return Canvas.GetLeft(avatar) + (avatar.Width / 2.0);
         }
 
@@ -426,22 +454,34 @@ namespace PassengerWPF
                 .FirstOrDefault(i => (i.Tag as string) == tag);
         }
 
+        // ✅ Center (Avatar) -> Stewardess.Left (weil Canvas.Left = linke Kante)
+        private double StewardessLeftFromPassengerCenter(double passengerCenterX)
+        {
+            // Canvas.Left basiert auf der unskalierten Layout-Width!
+            return passengerCenterX - (Stewardess.Width / 2.0);
+        }
+
         // -----------------------------
         // “Serve”: rein → wackeln → raus
         // -----------------------------
-        private async Task ServePassengerSimpleAsync(double passengerCenterX, string rowForZ)
+        private async Task ServePassengerSimpleAsync(double targetLeftX, string rowForZ)
         {
-            await MoveStewardessHorizontal(passengerCenterX, rowForZ);
+            await MoveStewardessHorizontal(targetLeftX, rowForZ);
+
+            // ✅ Servierbild
+            SetStewardessImage("stservice.png");
 
             for (int i = 0; i < 2; i++)
             {
-                Canvas.SetLeft(Stewardess, passengerCenterX + 6);
+                Canvas.SetLeft(Stewardess, targetLeftX + 6);
                 await Task.Delay(160);
-                Canvas.SetLeft(Stewardess, passengerCenterX - 6);
+                Canvas.SetLeft(Stewardess, targetLeftX - 6);
                 await Task.Delay(160);
             }
-            Canvas.SetLeft(Stewardess, passengerCenterX);
 
+            Canvas.SetLeft(Stewardess, targetLeftX);
+
+            // zurück in die Mitte (Bild wird in MoveStewardessHorizontal gesetzt)
             await MoveStewardessHorizontal(MiddleX, rowForZ);
         }
 
@@ -457,6 +497,11 @@ namespace PassengerWPF
         private async Task MoveStewardessHorizontal(double targetX, string rowForZ)
         {
             SetStewardessZIndex(rowForZ);
+
+            // ✅ Bild je Richtung
+            double startX = Canvas.GetLeft(Stewardess);
+            if (targetX < startX) SetStewardessImage("stlinks.png");
+            else if (targetX > startX) SetStewardessImage("strechts.png");
 
             double speedFactor = 0.08;
             double minStep = 0.35;
@@ -487,6 +532,10 @@ namespace PassengerWPF
 
             SetStewardessZIndex(rowForZ);
 
+            // ✅ Bild je Richtung
+            bool goingUp = targetY < startY;
+            SetStewardessImage(goingUp ? "stheck.png" : "stfront.png");
+
             double speed = 3;
             int direction = targetY > startY ? 1 : -1;
 
@@ -502,8 +551,8 @@ namespace PassengerWPF
 
                 Canvas.SetTop(Stewardess, newY);
 
-                double progress = Math.Abs(newY - startY) / Math.Abs(targetY - startY);
-                if (double.IsNaN(progress) || double.IsInfinity(progress)) progress = 1;
+                double denom = Math.Abs(targetY - startY);
+                double progress = denom <= 0.0001 ? 1.0 : Math.Abs(newY - startY) / denom;
 
                 double scale = startScale + (targetScale - startScale) * progress;
                 transform.ScaleX = scale;
