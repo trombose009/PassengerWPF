@@ -21,45 +21,33 @@ namespace PassengerWPF
         private readonly Dictionary<string, double> baseRowY;
         private readonly Dictionary<string, double> avatarSize;
 
-        // ✅ merkt sich pro Passagier, wie viele Orders bereits serviert wurden
         private readonly Dictionary<Passenger, int> servedOrders = new();
-
-        // ✅ Referenzen auf Bubble + 4 Icons pro Passagier (dauerhaft, aber zunächst unsichtbar)
         private readonly Dictionary<Passenger, Border> orderBubbleRefs = new();
         private readonly Dictionary<Passenger, Image[]> orderIconRefs = new();
 
         private const double MiddleX = 620;
         private const double StartY = 800;
 
-        // ✅ Gang-Höhe pro Reihe (größer = weiter unten)
         private const double GangOffsetBack = 115;
         private const double GangOffsetNear = 125;
         private const double GangOffsetFront = 260;
 
         private string currentRowForZ = "front";
 
-        // -----------------------------
-        // ✅ Catering Music (während Bewegung)
-        // -----------------------------
-        private MediaPlayer cateringMusicPlayer;
+        // ✅ nullable -> keine NonNullable-Warnung
+        private MediaPlayer? cateringMusicPlayer;
         private bool cateringMusicLoopWired = false;
-        // merkt sich Spielzustand (MediaPlayer hat kein IsPlaying)
         private bool cateringMusicIsPlaying = false;
 
-        // "Debounce": wie lange warten, bevor Fade-Out überhaupt beginnt
         private const int CateringMusicStopDelayMs = 800;
-
-        // Fade-Out Dauer (mehrere Sekunden)
         private const int CateringMusicFadeOutMs = 3500;
 
-        // zählt parallele Bewegungen; Musik läuft solange > 0
         private int movementSoundRefs = 0;
-
-        // Fade-Out Steuerung (Token / Version, um alte Fades abzubrechen)
         private int musicFadeVersion = 0;
 
-        // Ziel-Lautstärke (keine Fade-In nötig, wir starten direkt mit dieser)
         private const double CateringMusicTargetVolume = 0.35;
+
+        private bool _serviceRunning = false;
 
         private double GangY(string row) => row switch
         {
@@ -105,16 +93,43 @@ namespace PassengerWPF
             SetupBackgroundAndStewardess();
             SetupCateringMusic();
 
+            // ✅ KEIN Auto-Start mehr
             Loaded += async (_, __) =>
             {
                 LoadAndPlacePassengers();
                 await Task.Delay(200);
-                _ = StartRouteSafeAsync();
             };
         }
 
         // -----------------------------
-        // ✅ Zentraler Einstieg: Stewardess-Bild setzen
+        // Start Button
+        // -----------------------------
+        private async void StartServiceButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_serviceRunning) return;
+            _serviceRunning = true;
+
+            StartServiceButton.IsEnabled = false;
+            StartServiceButton.Opacity = 0.4;
+
+            try
+            {
+                await StartRouteSafeAsync();
+            }
+            finally
+            {
+                _serviceRunning = false;
+
+                // Wenn du ihn nur 1x willst -> Collapsed setzen
+                // StartServiceButton.Visibility = Visibility.Collapsed;
+
+                StartServiceButton.IsEnabled = true;
+                StartServiceButton.Opacity = 1.0;
+            }
+        }
+
+        // -----------------------------
+        // Stewardess helpers
         // -----------------------------
         private void SetStewardessImage(string fileName)
         {
@@ -123,11 +138,9 @@ namespace PassengerWPF
                 Stewardess.Source = img;
         }
 
-        // -----------------------------
-        // Layers + Stewardess init
-        // -----------------------------
         private void SetupBackgroundAndStewardess()
         {
+            // ✅ Canvas schwarz ist okay (betrifft nicht Avatar-Grids)
             CabinCanvas.Background = Brushes.Black;
 
             string cabinDir = ConfigService.Current.Paths.Cabin;
@@ -174,7 +187,7 @@ namespace PassengerWPF
             SetStewardessImage("stfront.png");
         }
 
-        private BitmapImage LoadStewardessImage(string fileName)
+        private BitmapImage? LoadStewardessImage(string fileName)
         {
             string path = Path.Combine(ConfigService.Current.Paths.Stewardess, fileName);
             if (!File.Exists(path))
@@ -200,7 +213,7 @@ namespace PassengerWPF
         }
 
         // -----------------------------
-        // ✅ CateringMusic aus config.json laden
+        // Catering music
         // -----------------------------
         private void SetupCateringMusic()
         {
@@ -214,7 +227,6 @@ namespace PassengerWPF
                     return;
                 }
 
-                // ConfigService macht i.d.R. absolut, aber sicher ist sicher
                 if (!Path.IsPathRooted(musicPath))
                     musicPath = PathHelpers.MakeAbsolute(musicPath);
 
@@ -235,11 +247,11 @@ namespace PassengerWPF
                     {
                         try
                         {
-                            // Loop (läuft nur, solange wir nicht gerade "faden/stoppen")
+                            if (cateringMusicPlayer == null) return;
                             cateringMusicPlayer.Position = TimeSpan.Zero;
                             cateringMusicPlayer.Play();
                         }
-                        catch { /* ignore */ }
+                        catch { }
                     };
                 }
 
@@ -257,16 +269,13 @@ namespace PassengerWPF
             {
                 if (cateringMusicPlayer == null) return;
 
-                // laufende Fade-Outs abbrechen
                 musicFadeVersion++;
-
                 movementSoundRefs++;
+
                 if (movementSoundRefs == 1)
                 {
-                    // kein Fade-In gewünscht -> direkt Ziel-Lautstärke
                     cateringMusicPlayer.Volume = CateringMusicTargetVolume;
 
-                    // ✅ NICHT Position resetten -> dadurch läuft es einfach weiter
                     if (!cateringMusicIsPlaying)
                     {
                         cateringMusicPlayer.Play();
@@ -274,7 +283,6 @@ namespace PassengerWPF
                     }
                     else
                     {
-                        // falls es gerade im Fade-Out leiser wurde, wieder auf Ziel-Vol
                         cateringMusicPlayer.Volume = CateringMusicTargetVolume;
                     }
                 }
@@ -284,7 +292,6 @@ namespace PassengerWPF
                 Debug.WriteLine("[MUSIC] Begin EXCEPTION: " + ex);
             }
         }
-
 
         private void EndMovementSound()
         {
@@ -296,10 +303,8 @@ namespace PassengerWPF
                 if (movementSoundRefs <= 0)
                 {
                     movementSoundRefs = 0;
-
-                    // ✅ sanfter Fade-Out: erst warten, dann langsam runter
                     int localVersion = ++musicFadeVersion;
-                    _ = FadeOutAndStopAsync(localVersion, stopDelayMs: CateringMusicStopDelayMs, fadeMs: CateringMusicFadeOutMs);
+                    _ = FadeOutAndStopAsync(localVersion, CateringMusicStopDelayMs, CateringMusicFadeOutMs);
                 }
             }
             catch (Exception ex)
@@ -308,24 +313,23 @@ namespace PassengerWPF
             }
         }
 
-
         private async Task FadeOutAndStopAsync(int version, int stopDelayMs, int fadeMs)
         {
             try
             {
                 if (cateringMusicPlayer == null) return;
 
-                // ✅ erst "Debounce": wenn schnell wieder Bewegung startet -> nicht stoppen
                 int waited = 0;
                 while (waited < stopDelayMs)
                 {
-                    if (version != musicFadeVersion) return;   // abgebrochen
-                    if (movementSoundRefs > 0) return;         // wieder Bewegung
+                    if (version != musicFadeVersion) return;
+                    if (movementSoundRefs > 0) return;
                     await Task.Delay(50);
                     waited += 50;
                 }
 
-                // immer noch keine Bewegung -> jetzt langsam fade-out
+                if (cateringMusicPlayer == null) return;
+
                 double startVol = cateringMusicPlayer.Volume;
                 if (startVol <= 0.001)
                 {
@@ -338,27 +342,25 @@ namespace PassengerWPF
                     return;
                 }
 
-                int steps = 40; // mehr Steps = smoother (bei mehreren Sekunden gut)
+                int steps = 40;
                 int stepDelay = Math.Max(15, fadeMs / steps);
 
                 for (int i = 1; i <= steps; i++)
                 {
+                    if (cateringMusicPlayer == null) return;
                     if (version != musicFadeVersion) { cateringMusicPlayer.Volume = CateringMusicTargetVolume; return; }
                     if (movementSoundRefs > 0) { cateringMusicPlayer.Volume = CateringMusicTargetVolume; return; }
 
-                    double t = i / (double)steps; // 0..1
+                    double t = i / (double)steps;
                     cateringMusicPlayer.Volume = startVol * (1.0 - t);
 
                     await Task.Delay(stepDelay);
                 }
 
-                // final stop, aber nur wenn wirklich weiterhin keine Bewegung
-                if (version == musicFadeVersion && movementSoundRefs == 0)
+                if (cateringMusicPlayer != null && version == musicFadeVersion && movementSoundRefs == 0)
                 {
                     cateringMusicPlayer.Stop();
                     cateringMusicIsPlaying = false;
-
-                    // Volume reset, damit beim nächsten Start sofort normal laut
                     cateringMusicPlayer.Volume = CateringMusicTargetVolume;
                 }
             }
@@ -368,9 +370,8 @@ namespace PassengerWPF
             }
         }
 
-
         // -----------------------------
-        // Passengers
+        // Passengers (dein Code unverändert)
         // -----------------------------
         private void LoadAndPlacePassengers()
         {
@@ -390,9 +391,8 @@ namespace PassengerWPF
 
             var takenSeatsPerRow = seatPositions.Keys.ToDictionary(k => k, _ => new HashSet<string>());
 
-            // ✅ Bubble überall gleich groß, aber etwas kleiner als zuvor
             const double BubbleSize = 90;
-            const double BubbleGap = 20; // ✅ deutlich dichter über dem Kopf
+            const double BubbleGap = 20;
 
             foreach (var p in passengers)
             {
@@ -424,7 +424,6 @@ namespace PassengerWPF
                 double y = baseRowY[row];
                 double size = avatarSize[row];
 
-                // Avatar
                 var avatarImg = new Image
                 {
                     Width = size,
@@ -436,13 +435,12 @@ namespace PassengerWPF
                     VerticalAlignment = VerticalAlignment.Top
                 };
 
-                // ✅ Name (besser lesbar auf warmen Brauntönen)
                 var nameText = new TextBlock
                 {
                     Text = p.Name,
                     FontSize = 12,
                     FontWeight = FontWeights.Bold,
-                    Foreground = new SolidColorBrush(Color.FromRgb(245, 245, 245)), // ✅ heller statt orange
+                    Foreground = new SolidColorBrush(Color.FromRgb(245, 245, 245)),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     TextAlignment = TextAlignment.Center,
                     Margin = new Thickness(0, -16, 0, 0),
@@ -456,12 +454,10 @@ namespace PassengerWPF
                     }
                 };
 
-                // ✅ Bubble (erst sichtbar beim Servieren)
                 var bubble = CreateOrderBubbleHidden(p, row, out var icons);
                 bubble.Width = BubbleSize;
                 bubble.Height = BubbleSize;
 
-                // ✅ Orders-Icons: zentriert ausrichten
                 if (icons != null)
                 {
                     foreach (var ic in icons)
@@ -476,7 +472,6 @@ namespace PassengerWPF
                 orderBubbleRefs[p] = bubble;
                 orderIconRefs[p] = icons;
 
-                // ✅ Container groß genug für Bubble
                 double containerW = BubbleSize;
                 double containerH = BubbleSize + BubbleGap + size;
 
@@ -486,7 +481,8 @@ namespace PassengerWPF
                     Height = size,
                     VerticalAlignment = VerticalAlignment.Bottom,
                     HorizontalAlignment = HorizontalAlignment.Center,
-                    IsHitTestVisible = false
+                    IsHitTestVisible = false,
+                    Background = Brushes.Transparent // ✅ wichtig: niemals schwarz
                 };
                 avatarHost.Children.Add(avatarImg);
                 avatarHost.Children.Add(nameText);
@@ -497,7 +493,8 @@ namespace PassengerWPF
                     Height = containerH,
                     Tag = $"avatar_passenger_{p.Name}",
                     IsHitTestVisible = false,
-                    ClipToBounds = false
+                    ClipToBounds = false,
+                    Background = Brushes.Transparent // ✅ wichtig: niemals schwarz
                 };
 
                 bubble.HorizontalAlignment = HorizontalAlignment.Center;
@@ -506,7 +503,6 @@ namespace PassengerWPF
                 avatarContainer.Children.Add(bubble);
                 avatarContainer.Children.Add(avatarHost);
 
-                // ✅ Avatar soll weiterhin bei y sitzen -> topOffset
                 double topOffset = containerH - size;
 
                 Canvas.SetLeft(avatarContainer, x - containerW / 2.0);
@@ -578,7 +574,7 @@ namespace PassengerWPF
         }
 
         // -----------------------------
-        // Z-Index für Stewardess
+        // Z Index / Route / Movement / Orders
         // -----------------------------
         private void SetStewardessZIndex(string row)
         {
@@ -595,9 +591,6 @@ namespace PassengerWPF
             Panel.SetZIndex(Stewardess, z);
         }
 
-        // -----------------------------
-        // Route
-        // -----------------------------
         private async Task StartRouteSafeAsync()
         {
             try { await RunServingRouteAsync(); }
