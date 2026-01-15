@@ -10,12 +10,19 @@ Das Projekt entstand als experimentelles Airline- / Simulator-nahes Visualisieru
 
 ## ✈️ Funktionen
 
-- Darstellung einer Flugzeugkabine mit perspektivischer Sitzanordnung
-- Animierte Passagier-Avatare
-- Sitzplatz-Logik (vorderer, mittlerer und hinterer Kabinenbereich)
-- Catering-Logik mit Bestell-Bubbles über den Passagieren
+- Darstellung einer Flugzeugkabine mit Positionierung von Passagieren
+- Vielflieger-Ewigkeitsliste
+- Catering-Animation mit Bestell-Bubbles über den Passagieren für Implementierung von Essensbestellungen
 - CSV-basierte Datenquellen für Passagiere und Boarding-Status
 - WPF-Oberfläche mit XAML, Animationen und Layout-Steuerung
+- Overlay für Streams mit Anzeige von Flugparametern (simconnect-Anbindung)
+
+---
+  
+## Voraussetzung
+
+- Streamer.bot zum Befüllen der Passagierliste
+- getestet mit MSFS 2020 (bezieht sich nur auf simconnect)
 
 ---
 
@@ -23,7 +30,7 @@ Das Projekt entstand als experimentelles Airline- / Simulator-nahes Visualisieru
 
 Die kompilierte Anwendung ist unter **Releases** verfügbar:
 
-👉 [https://github.com/<dein-user>/<dein-repo>/releases](https://github.com/trombose009/PassengerWPF/releases/tag/v14.0)
+👉 [https://github.com/trombose009/PassengerWPF/v14.0](https://github.com/trombose009/PassengerWPF/releases/tag/v14.0)
 
 Einfach das ZIP herunterladen, entpacken und die `PassengerWPF.exe` starten.
 
