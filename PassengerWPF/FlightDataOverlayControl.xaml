@@ -1,0 +1,165 @@
+﻿<UserControl x:Class="PassengerWPF.FlightDataOverlayControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:wpf="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+             Background="Black">
+
+    <Grid Margin="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="150"/>
+        </Grid.RowDefinitions>
+
+        <!-- Einstellungen: Webserver Port + Rotation -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="10">
+            <TextBlock Text="Webserver Port:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="White"/>
+            <TextBox x:Name="TxtWebServerPort" Width="60" Text="8080"/>
+            <TextBlock Text="   Rotationsintervall (s):" VerticalAlignment="Center" Margin="10,0,5,0" Foreground="White"/>
+            <TextBox x:Name="TxtRotationInterval" Width="60" Text="20"/>
+            <Button Content="Übernehmen" Margin="10,0,0,0" Click="BtnApplySettings_Click"/>
+            <TextBlock x:Name="WebServerUrlTextBlock" VerticalAlignment="Center" Margin="20,0,0,0" FontWeight="Bold" Foreground="LightBlue" Text="URL: ---"/>
+        </StackPanel>
+
+        <!-- Hauptbereich: Kontroll-Checkboxen + Overlay-Panels -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Kontroll-Checkboxen -->
+            <StackPanel Grid.Column="0" Orientation="Vertical" Margin="10,0,0,0">
+                <CheckBox x:Name="ChkFlightData" Content="Flugdaten" IsChecked="True" Margin="0,0,0,5" Foreground="White"/>
+
+                <!-- Flugdaten-Menü -->
+                <Border x:Name="FlightDataMenu" Background="#AA222222" Padding="5" Margin="10,0,0,5" Visibility="Collapsed">
+                    <StackPanel>
+
+                        <!-- Manuelle Eingaben zuerst -->
+                        <TextBlock Text="Manuelle Eingaben:" Foreground="White" FontWeight="Bold" Margin="0,0,0,2"/>
+                        <StackPanel Orientation="Vertical" Margin="5,2,0,5">
+                            <StackPanel Orientation="Horizontal" Margin="0,2" VerticalAlignment="Center">
+                                <CheckBox x:Name="ChkManualAircraft" IsChecked="True" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <TextBlock Text="Aircraft Type:" Foreground="White" Width="80"/>
+                                <TextBox x:Name="TxtAircraftType" Width="80"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,2" VerticalAlignment="Center">
+                                <CheckBox x:Name="ChkManualDep" IsChecked="True" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <TextBlock Text="DEP:" Foreground="White" Width="80"/>
+                                <TextBox x:Name="TxtDep" Width="80"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,2" VerticalAlignment="Center">
+                                <CheckBox x:Name="ChkManualArr" IsChecked="True" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <TextBlock Text="ARR:" Foreground="White" Width="80"/>
+                                <TextBox x:Name="TxtArr" Width="80"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Kopierte Flugdaten -->
+                        <TextBlock Text="Flugdaten von SimConnect:" Foreground="White" FontWeight="Bold" Margin="0,5,0,2"/>
+                        <StackPanel Orientation="Vertical" Margin="5,2,0,0">
+                            <CheckBox x:Name="ChkCopyAltitude" Content="Altitude" IsChecked="True" Foreground="White"/>
+                            <CheckBox x:Name="ChkCopySpeed" Content="Speed" IsChecked="True" Foreground="White"/>
+                            <CheckBox x:Name="ChkCopyHeading" Content="Heading" IsChecked="True" Foreground="White"/>
+                            <CheckBox x:Name="ChkCopyPosition" Content="Coords" IsChecked="True" Foreground="White"/>
+                            <CheckBox x:Name="ChkCopyVSpeed" Content="VSpeed" IsChecked="True" Foreground="White"/>
+                        </StackPanel>
+
+                    </StackPanel>
+                </Border>
+
+                <CheckBox x:Name="ChkMap" Content="Map" IsChecked="True" Margin="0,0,0,5" Foreground="White"/>
+                <CheckBox x:Name="ChkPassenger" Content="Passagierliste" IsChecked="True" Margin="0,0,0,5" Foreground="White"/>
+                <CheckBox x:Name="ChkBoarding" Content="Seat-Map" IsChecked="True" Margin="0,0,0,5" Foreground="White"/>
+            </StackPanel>
+
+            <!-- Overlay-Panels rechts -->
+            <Grid Grid.Column="1" Margin="0">
+                <!-- FlightData Panel -->
+                <Border x:Name="FlightDataPanel" Background="#CC000000" Padding="10" Visibility="Visible">
+                    <StackPanel>
+                        <!-- Preview Panel: Aircraft, DEP, ARR -->
+                        <StackPanel x:Name="PreviewPanel" Orientation="Vertical" Margin="0,0,0,5">
+                            <TextBlock Text="Flugdaten Vorschau" Foreground="LightBlue" FontWeight="Bold" Margin="0,0,0,2"/>
+                            <StackPanel Orientation="Vertical">
+                                <StackPanel x:Name="PreviewAircraftLine" Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="Aircraft:" Width="80" Foreground="White"/>
+                                    <TextBox x:Name="PreviewAircraft" Width="120" IsReadOnly="True"/>
+                                </StackPanel>
+                                <StackPanel x:Name="PreviewDepLine" Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="DEP:" Width="80" Foreground="White"/>
+                                    <TextBox x:Name="PreviewDep" Width="120" IsReadOnly="True"/>
+                                </StackPanel>
+                                <StackPanel x:Name="PreviewArrLine" Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="ARR:" Width="80" Foreground="White"/>
+                                    <TextBox x:Name="PreviewArr" Width="120" IsReadOnly="True"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Kopie der Flugdaten -->
+                        <StackPanel x:Name="CopyDataPanel" Visibility="Visible">
+                          <!--  <TextBlock Text="Kopie der Flugdaten" Foreground="LightBlue" FontWeight="Bold" Margin="0,5,0,2"/>  -->
+                            <StackPanel Orientation="Vertical" Margin="0,2">
+                                <StackPanel x:Name="altitudeCopyLine" Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="Altitude:" Width="80" Foreground="White"/>
+                                    <TextBox x:Name="TxtCopyAltitude" Width="120" IsReadOnly="True"/>
+                                </StackPanel>
+                                <StackPanel x:Name="speedCopyLine" Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="Speed:" Width="80" Foreground="White"/>
+                                    <TextBox x:Name="TxtCopySpeed" Width="120" IsReadOnly="True"/>
+                                </StackPanel>
+                                <StackPanel x:Name="headingCopyLine" Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="Heading:" Width="80" Foreground="White"/>
+                                    <TextBox x:Name="TxtCopyHeading" Width="120" IsReadOnly="True"/>
+                                </StackPanel>
+                                <StackPanel x:Name="coordinatesCopyLine" Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="Position:" Width="80" Foreground="White"/>
+                                    <TextBox x:Name="TxtCopyPosition" Width="120" IsReadOnly="True"/>
+                                </StackPanel>
+                                <StackPanel x:Name="vSpeedCopyLine" Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="VSpeed:" Width="80" Foreground="White"/>
+                                    <TextBox x:Name="TxtCopyVSpeed" Width="120" IsReadOnly="True"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Map Panel -->
+                <Border x:Name="MapPanel" Background="Black" Visibility="Collapsed">
+                    <wpf:WebView2 x:Name="FlightMapWebView"/>
+                </Border>
+
+                <!-- Passenger Panel -->
+                <Border x:Name="PassengerPanel" Background="#CC000000" Padding="10" Visibility="Collapsed">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding OverlayPassengers}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="2">
+                                        <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="White" Margin="0,0,5,0"/>
+                                        <TextBlock Text="(" Foreground="White"/>
+                                        <TextBlock Text="{Binding Sitzplatz}" Foreground="LightGray"/>
+                                        <TextBlock Text=")" Foreground="White"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
+
+                <!-- SeatMap Panel -->
+                <Border x:Name="SeatMapPanel" Background="#80000000" Padding="10" Visibility="Collapsed">
+                    <Image x:Name="SeatMapImage" Stretch="Uniform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- Log-Fenster -->
+        <TextBox x:Name="OverlayLog" Grid.Row="2" IsReadOnly="True" TextWrapping="Wrap"
+                 VerticalScrollBarVisibility="Auto" Background="#FF202020"
+                 Foreground="LightGreen" FontFamily="Consolas" FontSize="12"/>
+    </Grid>
+</UserControl>

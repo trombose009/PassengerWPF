@@ -1,19 +1,42 @@
-﻿<Window x:Class="PassengerWPF.AvatarMappingWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Avatar Mapping" Height="600" Width="1100"
-        WindowStartupLocation="CenterScreen">
+﻿<UserControl x:Class="PassengerWPF.AvatarMappingControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:PassengerWPF"
+             Width="Auto" Height="Auto">
     <Grid Margin="10">
-        <DataGrid x:Name="DataGridPassengers"
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Top Bar -->
+        <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,8">
+            <Button Content="🔄 Neu laden"
+                    Width="120"
+                    Padding="6"
+                    Click="BtnReload_Click"/>
+            <Button Content="🎯 Avatar Roulette"
+                    Width="140"
+                    Margin="10,0,0,0"
+                    Padding="6"
+                    Click="BtnAssignAvatar_Click"/>
+        </StackPanel>
+
+        <!-- Passenger Grid -->
+        <DataGrid Grid.Row="1"
+                  x:Name="DgPassengers"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
                   IsReadOnly="True"
                   RowHeight="100"
-                  HeadersVisibility="Column">
+                  HeadersVisibility="Column"
+                  ScrollViewer.VerticalScrollBarVisibility="Auto">
+
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="140"/>
                 <DataGridTextColumn Header="Sitzplatz" Binding="{Binding Sitzplatz}" Width="80"/>
 
+                <!-- Avatar -->
                 <DataGridTemplateColumn Header="Avatar" Width="120">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
@@ -22,14 +45,16 @@
                                     <RowDefinition Height="*"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-
-                                <Image Source="{Binding AvatarImagePath}" Width="64" Height="64" Margin="2" Stretch="UniformToFill" VerticalAlignment="Center"/>
-                                <Button Grid.Row="1" Content="Ändern" Click="AvatarButton_Click" HorizontalAlignment="Center" Padding="4,1"/>
+                                <Image Source="{Binding AvatarImagePath}" Width="64" Height="64"
+                                       Stretch="UniformToFill" VerticalAlignment="Center"/>
+                                <Button Grid.Row="1" Content="Ändern" Click="AvatarButton_Click"
+                                        HorizontalAlignment="Center" Padding="4,1"/>
                             </Grid>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
+                <!-- Orders 1-4 -->
                 <DataGridTemplateColumn Header="Order 1" Width="100">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
@@ -38,8 +63,7 @@
                                     <RowDefinition Height="*"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-
-                                <Image Source="{Binding Order1ImagePath}" Width="48" Height="48" Margin="2" Stretch="UniformToFill" VerticalAlignment="Center"/>
+                                <Image Source="{Binding Order1ImagePath}" Width="48" Height="48" Stretch="UniformToFill" VerticalAlignment="Center"/>
                                 <Button Grid.Row="1" Content="Ändern" Click="OrderButton_Click" Tag="1" HorizontalAlignment="Center" Padding="4,1"/>
                             </Grid>
                         </DataTemplate>
@@ -54,8 +78,7 @@
                                     <RowDefinition Height="*"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-
-                                <Image Source="{Binding Order2ImagePath}" Width="48" Height="48" Margin="2" Stretch="UniformToFill" VerticalAlignment="Center"/>
+                                <Image Source="{Binding Order2ImagePath}" Width="48" Height="48" Stretch="UniformToFill" VerticalAlignment="Center"/>
                                 <Button Grid.Row="1" Content="Ändern" Click="OrderButton_Click" Tag="2" HorizontalAlignment="Center" Padding="4,1"/>
                             </Grid>
                         </DataTemplate>
@@ -70,8 +93,7 @@
                                     <RowDefinition Height="*"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-
-                                <Image Source="{Binding Order3ImagePath}" Width="48" Height="48" Margin="2" Stretch="UniformToFill" VerticalAlignment="Center"/>
+                                <Image Source="{Binding Order3ImagePath}" Width="48" Height="48" Stretch="UniformToFill" VerticalAlignment="Center"/>
                                 <Button Grid.Row="1" Content="Ändern" Click="OrderButton_Click" Tag="3" HorizontalAlignment="Center" Padding="4,1"/>
                             </Grid>
                         </DataTemplate>
@@ -86,8 +108,7 @@
                                     <RowDefinition Height="*"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-
-                                <Image Source="{Binding Order4ImagePath}" Width="48" Height="48" Margin="2" Stretch="UniformToFill" VerticalAlignment="Center"/>
+                                <Image Source="{Binding Order4ImagePath}" Width="48" Height="48" Stretch="UniformToFill" VerticalAlignment="Center"/>
                                 <Button Grid.Row="1" Content="Ändern" Click="OrderButton_Click" Tag="4" HorizontalAlignment="Center" Padding="4,1"/>
                             </Grid>
                         </DataTemplate>
@@ -97,4 +118,4 @@
             </DataGrid.Columns>
         </DataGrid>
     </Grid>
-</Window>
+</UserControl>
