@@ -6,6 +6,7 @@ Das Projekt entstand als experimentelles Airline- / Simulator-nahes Visualisieru
 
 ![cabin](PassengerWPF/examples/cabin.png)
 ![seatmap](PassengerWPF/examples/seatmap.png)
+![overlay](PassengerWPF/examples/overlay1.png)
 
 ---
 
