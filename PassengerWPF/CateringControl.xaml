@@ -1,12 +1,22 @@
 ﻿<UserControl x:Class="PassengerWPF.CateringControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             Background="Black"
-             Width="1355" Height="768">
+             Background="Black">
 
-    <Grid>
-        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-            <Canvas x:Name="CabinCanvas" Width="1355" Height="768" HorizontalAlignment="Center" VerticalAlignment="Center">
+    <!-- NUR der Root ist schwarz -->
+    <Grid Background="Black">
+
+        <ScrollViewer Background="Transparent"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto">
+
+            <!-- Canvas darf ruhig transparent bleiben,
+                 dein Bild füllt ohnehin; wenn du willst, auch Black -->
+            <Canvas x:Name="CabinCanvas"
+                    Width="1355" Height="768"
+                    Background="Transparent"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
                 <!-- Sitzreihen-Bilder -->
                 <Image x:Name="SeatsBackground" Width="1355" Height="768" Panel.ZIndex="1"/>
                 <Image x:Name="SeatsMiddle" Width="1355" Height="768" Panel.ZIndex="4" IsHitTestVisible="False"/>

@@ -38,6 +38,29 @@ namespace PassengerWPF
 
         private string currentRowForZ = "front";
 
+        // -----------------------------
+        // ✅ Catering Music (während Bewegung)
+        // -----------------------------
+        private MediaPlayer cateringMusicPlayer;
+        private bool cateringMusicLoopWired = false;
+        // merkt sich Spielzustand (MediaPlayer hat kein IsPlaying)
+        private bool cateringMusicIsPlaying = false;
+
+        // "Debounce": wie lange warten, bevor Fade-Out überhaupt beginnt
+        private const int CateringMusicStopDelayMs = 800;
+
+        // Fade-Out Dauer (mehrere Sekunden)
+        private const int CateringMusicFadeOutMs = 3500;
+
+        // zählt parallele Bewegungen; Musik läuft solange > 0
+        private int movementSoundRefs = 0;
+
+        // Fade-Out Steuerung (Token / Version, um alte Fades abzubrechen)
+        private int musicFadeVersion = 0;
+
+        // Ziel-Lautstärke (keine Fade-In nötig, wir starten direkt mit dieser)
+        private const double CateringMusicTargetVolume = 0.35;
+
         private double GangY(string row) => row switch
         {
             "back" => baseRowY["back"] + GangOffsetBack,
@@ -80,6 +103,7 @@ namespace PassengerWPF
             };
 
             SetupBackgroundAndStewardess();
+            SetupCateringMusic();
 
             Loaded += async (_, __) =>
             {
@@ -176,6 +200,176 @@ namespace PassengerWPF
         }
 
         // -----------------------------
+        // ✅ CateringMusic aus config.json laden
+        // -----------------------------
+        private void SetupCateringMusic()
+        {
+            try
+            {
+                string musicPath = ConfigService.Current.Paths.CateringMusic;
+
+                if (string.IsNullOrWhiteSpace(musicPath))
+                {
+                    Debug.WriteLine("[MUSIC] CateringMusic path empty.");
+                    return;
+                }
+
+                // ConfigService macht i.d.R. absolut, aber sicher ist sicher
+                if (!Path.IsPathRooted(musicPath))
+                    musicPath = PathHelpers.MakeAbsolute(musicPath);
+
+                if (!File.Exists(musicPath))
+                {
+                    Debug.WriteLine($"[MUSIC] Missing: {musicPath}");
+                    return;
+                }
+
+                cateringMusicPlayer = new MediaPlayer();
+                cateringMusicPlayer.Open(new Uri(musicPath, UriKind.Absolute));
+                cateringMusicPlayer.Volume = CateringMusicTargetVolume;
+
+                if (!cateringMusicLoopWired)
+                {
+                    cateringMusicLoopWired = true;
+                    cateringMusicPlayer.MediaEnded += (_, __) =>
+                    {
+                        try
+                        {
+                            // Loop (läuft nur, solange wir nicht gerade "faden/stoppen")
+                            cateringMusicPlayer.Position = TimeSpan.Zero;
+                            cateringMusicPlayer.Play();
+                        }
+                        catch { /* ignore */ }
+                    };
+                }
+
+                Debug.WriteLine($"[MUSIC] Loaded: {musicPath}");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[MUSIC] EXCEPTION: " + ex);
+            }
+        }
+
+        private void BeginMovementSound()
+        {
+            try
+            {
+                if (cateringMusicPlayer == null) return;
+
+                // laufende Fade-Outs abbrechen
+                musicFadeVersion++;
+
+                movementSoundRefs++;
+                if (movementSoundRefs == 1)
+                {
+                    // kein Fade-In gewünscht -> direkt Ziel-Lautstärke
+                    cateringMusicPlayer.Volume = CateringMusicTargetVolume;
+
+                    // ✅ NICHT Position resetten -> dadurch läuft es einfach weiter
+                    if (!cateringMusicIsPlaying)
+                    {
+                        cateringMusicPlayer.Play();
+                        cateringMusicIsPlaying = true;
+                    }
+                    else
+                    {
+                        // falls es gerade im Fade-Out leiser wurde, wieder auf Ziel-Vol
+                        cateringMusicPlayer.Volume = CateringMusicTargetVolume;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[MUSIC] Begin EXCEPTION: " + ex);
+            }
+        }
+
+
+        private void EndMovementSound()
+        {
+            try
+            {
+                if (cateringMusicPlayer == null) return;
+
+                movementSoundRefs--;
+                if (movementSoundRefs <= 0)
+                {
+                    movementSoundRefs = 0;
+
+                    // ✅ sanfter Fade-Out: erst warten, dann langsam runter
+                    int localVersion = ++musicFadeVersion;
+                    _ = FadeOutAndStopAsync(localVersion, stopDelayMs: CateringMusicStopDelayMs, fadeMs: CateringMusicFadeOutMs);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[MUSIC] End EXCEPTION: " + ex);
+            }
+        }
+
+
+        private async Task FadeOutAndStopAsync(int version, int stopDelayMs, int fadeMs)
+        {
+            try
+            {
+                if (cateringMusicPlayer == null) return;
+
+                // ✅ erst "Debounce": wenn schnell wieder Bewegung startet -> nicht stoppen
+                int waited = 0;
+                while (waited < stopDelayMs)
+                {
+                    if (version != musicFadeVersion) return;   // abgebrochen
+                    if (movementSoundRefs > 0) return;         // wieder Bewegung
+                    await Task.Delay(50);
+                    waited += 50;
+                }
+
+                // immer noch keine Bewegung -> jetzt langsam fade-out
+                double startVol = cateringMusicPlayer.Volume;
+                if (startVol <= 0.001)
+                {
+                    if (version == musicFadeVersion && movementSoundRefs == 0)
+                    {
+                        cateringMusicPlayer.Stop();
+                        cateringMusicIsPlaying = false;
+                        cateringMusicPlayer.Volume = CateringMusicTargetVolume;
+                    }
+                    return;
+                }
+
+                int steps = 40; // mehr Steps = smoother (bei mehreren Sekunden gut)
+                int stepDelay = Math.Max(15, fadeMs / steps);
+
+                for (int i = 1; i <= steps; i++)
+                {
+                    if (version != musicFadeVersion) { cateringMusicPlayer.Volume = CateringMusicTargetVolume; return; }
+                    if (movementSoundRefs > 0) { cateringMusicPlayer.Volume = CateringMusicTargetVolume; return; }
+
+                    double t = i / (double)steps; // 0..1
+                    cateringMusicPlayer.Volume = startVol * (1.0 - t);
+
+                    await Task.Delay(stepDelay);
+                }
+
+                // final stop, aber nur wenn wirklich weiterhin keine Bewegung
+                if (version == musicFadeVersion && movementSoundRefs == 0)
+                {
+                    cateringMusicPlayer.Stop();
+                    cateringMusicIsPlaying = false;
+
+                    // Volume reset, damit beim nächsten Start sofort normal laut
+                    cateringMusicPlayer.Volume = CateringMusicTargetVolume;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[MUSIC] FadeOut EXCEPTION: " + ex);
+            }
+        }
+
+
+        // -----------------------------
         // Passengers
         // -----------------------------
         private void LoadAndPlacePassengers()
@@ -242,30 +436,27 @@ namespace PassengerWPF
                     VerticalAlignment = VerticalAlignment.Top
                 };
 
-                // Name
+                // ✅ Name (besser lesbar auf warmen Brauntönen)
                 var nameText = new TextBlock
                 {
                     Text = p.Name,
                     FontSize = 12,
-                    FontWeight = FontWeights.SemiBold,
-                    Foreground = new SolidColorBrush(Color.FromRgb(255, 165, 0)),
+                    FontWeight = FontWeights.Bold,
+                    Foreground = new SolidColorBrush(Color.FromRgb(245, 245, 245)), // ✅ heller statt orange
                     HorizontalAlignment = HorizontalAlignment.Center,
                     TextAlignment = TextAlignment.Center,
                     Margin = new Thickness(0, -16, 0, 0),
                     IsHitTestVisible = false,
                     Effect = new DropShadowEffect
                     {
-                        BlurRadius = 4,
+                        BlurRadius = 6,
                         ShadowDepth = 0,
                         Color = Colors.Black,
-                        Opacity = 0.7
+                        Opacity = 0.95
                     }
                 };
 
                 // ✅ Bubble (erst sichtbar beim Servieren)
-                // WICHTIG: damit BubbleSize auch wirklich genutzt wird, bekommt CreateOrderBubbleHidden
-                // optional BubbleSize mit. Falls du die Methode nicht ändern willst:
-                // lass sie wie sie ist, dann ist Bubble ggf. noch größer. Besser: Methode anpassen.
                 var bubble = CreateOrderBubbleHidden(p, row, out var icons);
                 bubble.Width = BubbleSize;
                 bubble.Height = BubbleSize;
@@ -332,7 +523,6 @@ namespace PassengerWPF
                 CabinCanvas.Children.Add(avatarContainer);
             }
         }
-
 
         private void RemoveOldPassengerElements()
         {
@@ -675,9 +865,6 @@ namespace PassengerWPF
             return bubble;
         }
 
-
-
-
         private void EnsureBubbleVisible(Passenger p)
         {
             if (!orderBubbleRefs.TryGetValue(p, out var bubble) || bubble == null) return;
@@ -749,8 +936,6 @@ namespace PassengerWPF
             await MoveStewardessHorizontal(MiddleX, rowForZ);
         }
 
-
-
         // -----------------------------
         // Movement helpers
         // -----------------------------
@@ -762,33 +947,42 @@ namespace PassengerWPF
 
         private async Task MoveStewardessHorizontal(double targetX, string rowForZ)
         {
-            SetStewardessZIndex(rowForZ);
-
-            double startX = Canvas.GetLeft(Stewardess);
-            if (targetX < startX) SetStewardessImage("stlinks.png");
-            else if (targetX > startX) SetStewardessImage("strechts.png");
-
-            double speedFactor = 0.08;
-            double minStep = 0.35;
-
-            double x = Canvas.GetLeft(Stewardess);
-
-            while (Math.Abs(x - targetX) > 0.5)
+            BeginMovementSound();
+            try
             {
                 SetStewardessZIndex(rowForZ);
 
-                double delta = (targetX - x) * speedFactor;
-                if (Math.Abs(delta) < minStep) delta = Math.Sign(delta) * minStep;
+                double startX = Canvas.GetLeft(Stewardess);
+                if (targetX < startX) SetStewardessImage("stlinks.png");
+                else if (targetX > startX) SetStewardessImage("strechts.png");
 
-                x += delta;
-                Canvas.SetLeft(Stewardess, x);
+                double speedFactor = 0.08;
+                double minStep = 0.35;
 
-                await Task.Delay(16);
+                double x = Canvas.GetLeft(Stewardess);
+
+                while (Math.Abs(x - targetX) > 0.5)
+                {
+                    SetStewardessZIndex(rowForZ);
+
+                    double delta = (targetX - x) * speedFactor;
+                    if (Math.Abs(delta) < minStep) delta = Math.Sign(delta) * minStep;
+
+                    x += delta;
+                    Canvas.SetLeft(Stewardess, x);
+
+                    await Task.Delay(16);
+                }
+
+                Canvas.SetLeft(Stewardess, targetX);
+                SetStewardessZIndex(rowForZ);
             }
-
-            Canvas.SetLeft(Stewardess, targetX);
-            SetStewardessZIndex(rowForZ);
+            finally
+            {
+                EndMovementSound();
+            }
         }
+
         private void PopulateBubbleWithAllOrders(Passenger p)
         {
             if (p == null) return;
@@ -834,6 +1028,7 @@ namespace PassengerWPF
             // direkt korrekt "Served" darstellen (falls schon was serviert wurde)
             RefreshServedDimming(p);
         }
+
         private void RefreshServedDimming(Passenger p)
         {
             if (p == null) return;
@@ -870,47 +1065,54 @@ namespace PassengerWPF
             }
         }
 
-
         private async Task MoveStewardessVerticalWithScale(double startY, double targetY, double startScale, double targetScale, string rowForZ)
         {
-            EnsureScaleTransform();
-            var transform = (ScaleTransform)Stewardess.RenderTransform;
-
-            SetStewardessZIndex(rowForZ);
-
-            bool goingUp = targetY < startY;
-            SetStewardessImage(goingUp ? "stheck.png" : "stfront.png");
-
-            double speed = 3;
-            int direction = targetY > startY ? 1 : -1;
-
-            while (Math.Abs(Canvas.GetTop(Stewardess) - targetY) > 0.5)
+            BeginMovementSound();
+            try
             {
+                EnsureScaleTransform();
+                var transform = (ScaleTransform)Stewardess.RenderTransform;
+
                 SetStewardessZIndex(rowForZ);
 
-                double currentY = Canvas.GetTop(Stewardess);
-                double newY = currentY + direction * speed;
+                bool goingUp = targetY < startY;
+                SetStewardessImage(goingUp ? "stheck.png" : "stfront.png");
 
-                if ((direction > 0 && newY > targetY) || (direction < 0 && newY < targetY))
-                    newY = targetY;
+                double speed = 3;
+                int direction = targetY > startY ? 1 : -1;
 
-                Canvas.SetTop(Stewardess, newY);
+                while (Math.Abs(Canvas.GetTop(Stewardess) - targetY) > 0.5)
+                {
+                    SetStewardessZIndex(rowForZ);
 
-                double denom = Math.Abs(targetY - startY);
-                double progress = denom <= 0.0001 ? 1.0 : Math.Abs(newY - startY) / denom;
+                    double currentY = Canvas.GetTop(Stewardess);
+                    double newY = currentY + direction * speed;
 
-                double scale = startScale + (targetScale - startScale) * progress;
-                transform.ScaleX = scale;
-                transform.ScaleY = scale;
+                    if ((direction > 0 && newY > targetY) || (direction < 0 && newY < targetY))
+                        newY = targetY;
 
-                await Task.Delay(16);
+                    Canvas.SetTop(Stewardess, newY);
+
+                    double denom = Math.Abs(targetY - startY);
+                    double progress = denom <= 0.0001 ? 1.0 : Math.Abs(newY - startY) / denom;
+
+                    double scale = startScale + (targetScale - startScale) * progress;
+                    transform.ScaleX = scale;
+                    transform.ScaleY = scale;
+
+                    await Task.Delay(16);
+                }
+
+                Canvas.SetTop(Stewardess, targetY);
+                transform.ScaleX = targetScale;
+                transform.ScaleY = targetScale;
+
+                SetStewardessZIndex(rowForZ);
             }
-
-            Canvas.SetTop(Stewardess, targetY);
-            transform.ScaleX = targetScale;
-            transform.ScaleY = targetScale;
-
-            SetStewardessZIndex(rowForZ);
+            finally
+            {
+                EndMovementSound();
+            }
         }
     }
 }
