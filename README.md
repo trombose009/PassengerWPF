@@ -5,7 +5,7 @@ mit Passagieren, Sitzlogik und Catering-Abläufen.
 Das Projekt entstand als experimentelles Airline- / Simulator-nahes Visualisierungstool.
 
 ![cabin](PassengerWPF/examples/cabin.png)
-![seatmap](PassengerWPF/examples/cseatmap.png)
+![seatmap](PassengerWPF/examples/seatmap.png)
 
 ---
 
