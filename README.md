@@ -4,7 +4,7 @@ PassengerWPF ist eine Windows-WPF-Anwendung zur Visualisierung einer Flugzeugkab
 mit Passagieren, Sitzlogik und Catering-Abläufen.
 Das Projekt entstand als experimentelles Airline- / Simulator-nahes Visualisierungstool.
 
-![Kabinenansicht](screenshots/cabin.png)
+![Kabinenansicht](examples/cabin.png)
 
 ---
 
