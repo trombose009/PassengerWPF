@@ -1,11 +1,14 @@
 # PassengerWPF
 
 PassengerWPF ist eine Windows-WPF-Anwendung zur Visualisierung einer Flugzeugkabine
-mit Passagieren, Sitzlogik und Catering-Abläufen.
-Das Projekt entstand als experimentelles Airline- / Simulator-nahes Visualisierungstool.
+mit Passagieren, Sitzlogik und Catering-Abläufen. Außerdem ist ein http-Overlay für OBS vorhanden. 
+Man kann es testen. Einfach runterladen, entpacken und die exe ausführen. Test-Daten sind bereits inkludiert so dass man auch die Catering Animation testen kann.
 
+Catering-Animation
 ![cabin](PassengerWPF/examples/cabin.png)
+Seatmap
 ![seatmap](PassengerWPF/examples/seatmap.png)
+Beispiel für das OBS-Overlay
 ![overlay](PassengerWPF/examples/overlay1.png)
 
 ---
