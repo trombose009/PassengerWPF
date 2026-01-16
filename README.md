@@ -140,7 +140,10 @@ public class CPHInline
 }
 
 ```
-Damit der Streamerbot Essens-/Getränkebestellungen dem Programm hinzufügen kann, müssen diese in der Form Name,bilddatei.png in die Datei Orders geschrieben werden. Das lässt sich wie in den folgenden zwei Screenshots zu sehen, umsetzen. 
+Aus technischen Gründen ist das bei der Ticket-Buchung so notwendig. 
+
+Damit der Streamerbot Essens-/Getränkebestellungen dem Programm hinzufügen kann, müssen diese in der Form Name,bilddatei.png in die Datei Orders geschrieben werden. Das lässt sich wie in den folgenden zwei Screenshots zu sehen, umsetzen. Es muss immer zunächst der PAssagier schon vorhanden sein (Ticket gebucht haben) damit er eine Bestellnug aufgeben kann.
+
 ![cabin](PassengerWPF/examples/order1.png)
 ![seatmap](PassengerWPF/examples/order2.png)
 
