@@ -61,7 +61,7 @@ Einfach das ZIP herunterladen, entpacken und die `PassengerWPF.exe` starten.
 Ich möchte hier nicht eine komplette Schritt für Schritt Anleitung zum Verwenden von Streamer.bot erstellen. Hier nur das Wichtigste, wie die Dateien gefüttert werden müssen bzw. ein Beispiel wie es geschehen kann.
 
 Um ein Ticket "buchen" zu können muss im Streamer.bot folgende Action eingerichtet werden:
-![overlay](PassengerWPF/examples/baording1.png)
+![overlay](PassengerWPF/examples/boarding1.png)
 ![overlay](PassengerWPF/examples/boarding2.png)
 Der folgende C# code muss was den Pfad angeht angepasst und entsprechend in streamer.bot verwendet werden:
 ```
