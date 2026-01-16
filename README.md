@@ -54,7 +54,8 @@ Einfach das ZIP herunterladen, entpacken und die `PassengerWPF.exe` starten.
 1. Release-ZIP herunterladen
 2. ZIP entpacken
 3. `PassengerWPF.exe` starten
-4. Passagier- und Boardingdaten werden aus CSV-Dateien geladen
+4. Beispiel-Passagier- und Boardingdaten werden aus CSV-Dateien geladen
+ACHTUNG: sobald man auf "Neuen Flug starten klickt, sind die Beispieldaten weg! Um die Beispiele aus der Vielfliegerliste zu löschen, einfach die boarding_count.csv-datei öffnen und bereinigen. 
 
 ## Streamer.bot / Befüllung der Dateien PassengerData.csv und orders.csv
 
