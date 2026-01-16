@@ -56,6 +56,96 @@ Einfach das ZIP herunterladen, entpacken und die `PassengerWPF.exe` starten.
 3. `PassengerWPF.exe` starten
 4. Passagier- und Boardingdaten werden aus CSV-Dateien geladen
 
+## Streamer.bot / Befüllung der Dateien PassengerData.csv und orders.csv
+
+Ich möchte hier nicht eine komplette Schritt für Schritt Anleitung zum Verwenden von Streamer.bot erstellen. Hier nur das Wichtigste, wie die Dateien gefüttert werden müssen bzw. ein Beispiel wie es geschehen kann.
+
+Um ein Ticket "buchen" zu können muss im Streamer.bot folgende Action eingerichtet werden:
+![overlay](PassengerWPF/examples/baording1.png)
+![overlay](PassengerWPF/examples/boarding2.png)
+Der folgende C# code muss was den Pfad angeht angepasst und entsprechend in streamer.bot verwendet werden:
+```
+using System;
+using System.IO;
+
+public class CPHInline
+{
+    public bool Execute()
+    {
+        string passengerFilePath = @"C:\Users\Gaming-Pc\Downloads\PassengerWPF\passengerdata.csv";
+        string tempFilePath = @"C:\Users\Gaming-Pc\Downloads\PassengerWPF\new_passenger.txt";
+
+        try
+        {
+            // Neue Datei existiert?
+            if (!File.Exists(tempFilePath))
+            {
+                CPH.LogWarn("Temporary passenger file not found.");
+                return true;
+            }
+
+            // Benutzername aus temporärer Datei lesen
+            string passenger = File.ReadAllText(tempFilePath).Trim();
+            if (string.IsNullOrWhiteSpace(passenger))
+            {
+                CPH.LogWarn("Temporary passenger file is empty.");
+                return true;
+            }
+
+            // CSV anlegen, falls nicht vorhanden
+            if (!File.Exists(passengerFilePath))
+            {
+                File.WriteAllText(passengerFilePath,
+                    "Name,Sitzplatz,Avatar,Order1,Order2,Order3,Order4" + Environment.NewLine);
+                CPH.LogInfo("Passenger CSV file created with header.");
+            }
+
+            // Alle Zeilen der CSV lesen
+            string[] lines = File.ReadAllLines(passengerFilePath);
+            bool exists = false;
+
+            foreach (string line in lines)
+            {
+                // Nur den Namen vergleichen (vor dem ersten Komma)
+                string existingName = line.Split(',')[0].Trim();
+                if (string.Equals(existingName, passenger, StringComparison.OrdinalIgnoreCase))
+                {
+                    exists = true;
+                    break;
+                }
+            }
+
+            if (exists)
+            {
+                CPH.LogInfo($"Passenger '{passenger}' already exists. Skipping.");
+            }
+            else
+            {
+                // Name + 6 leere Felder, in neuer Zeile
+                string newLine = passenger + ",,,,,,";
+                File.AppendAllText(passengerFilePath, Environment.NewLine + newLine);
+                CPH.LogInfo($"Passenger '{passenger}' added to CSV.");
+            }
+
+            // Temporäre Datei löschen
+            File.Delete(tempFilePath);
+        }
+        catch (Exception ex)
+        {
+            CPH.LogError("Error processing passenger: " + ex.Message);
+        }
+
+        return true;
+    }
+}
+
+```
+Damit der Streamerbot Essens-/Getränkebestellungen dem Programm hinzufügen kann, müssen diese in der Form Name,bilddatei.png in die Datei Orders geschrieben werden. Das lässt sich wie in den folgenden zwei Screenshots zu sehen, umsetzen. 
+![cabin](PassengerWPF/examples/order1.png)
+![seatmap](PassengerWPF/examples/order2.png)
+
+
+
 ---
 
 ## 🧩 Technische Details
